@@ -5,6 +5,8 @@
 ![platform macOS Apple Silicon](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey.svg)
 ![version 0.1.0](https://img.shields.io/badge/version-0.1.0-informational.svg)
 
+Website: [voz.vercel.app](https://voz.vercel.app) (what it looks like, how to install it and what changed in each version) <!-- URL-WEB -->
+
 [Español](README.md) · **English**
 
 Local voice dictation for the terminal. You talk, `voz` transcribes on your Mac with [mlx-whisper](https://pypi.org/project/mlx-whisper/) and leaves the text on your clipboard, ready to paste into Claude Code, your editor, or anywhere else. Your voice never touches a server.

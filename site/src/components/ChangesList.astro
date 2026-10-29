@@ -20,7 +20,7 @@ const shown = tipo ? releases.filter((r) => !r.unreleased && r.sections.some((s)
 <div class="wrap pad-end">
   <div class="page-head">
     <h1>Novedades</h1>
-    <p class="lead">El historial de voz sale del <a href="https://github.com/danpv95/voz/blob/main/CHANGELOG.md">CHANGELOG</a> del repositorio. Arriba, lo que viene; debajo, lo que ya se publicó.</p>
+    <p class="lead">Lo que ha cambiado en cada versión, tomado del <a href="https://github.com/danpv95/voz/blob/main/CHANGELOG.md">CHANGELOG</a> del repositorio. Arriba, lo que viene; debajo, lo ya publicado.</p>
     <ul class="filters" aria-label="Filtrar por tipo de cambio">
       {FILTERS.map((f) => (
         <li><a href={f.href} data-tipo={f.tipo} aria-current={(f.tipo || undefined) === tipo ? 'true' : undefined}>{f.label}</a></li>

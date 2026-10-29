@@ -32,7 +32,7 @@ const jsonLd = {
 ---
 <Base
   title="voz · Dicta como hablas. Pega como escribes."
-  description="Dictado por voz para la terminal, 100 % en tu Mac. Español e inglés, sin cuentas y sin nube. Ningún audio sale de tu equipo."
+  description="Dicta en la terminal y pega donde quieras. Español e inglés, todo en tu Mac: sin cuentas, sin nube y sin que tu voz salga de tu equipo."
   path="/"
   jsonLd={jsonLd}
 >
@@ -55,15 +55,15 @@ const jsonLd = {
           <p class="copied"><span class="ok">✓  Copiado</span><span>Cmd-V para pegar</span></p>
         </div>
 
-        <p class="dek">100 % en tu Mac. Ningún audio sale de tu equipo.</p>
+        <p class="dek">Todo pasa en tu Mac. Tu voz no sale de ahí.</p>
 
         <div class="act">
           <div class="btns">
-            <a class="btn primary" href="/#instalar" data-open-install aria-haspopup="dialog">Instalar</a>
+            <a class="btn primary" href="/#instalar" data-open-install aria-haspopup="dialog">Cómo instalarlo</a>
             <a class="btn" href={REPO}><GithubIcon />Ver en GitHub</a>
           </div>
           <ul class="plat" aria-label="Plataformas">
-            <li class="on"><span class="pm" aria-hidden="true"><i class="b b1"></i><i class="b b2"></i><i class="b b1"></i></span><span>CLI · disponible hoy</span></li>
+            <li class="on"><span class="pm" aria-hidden="true"><i class="b b1"></i><i class="b b2"></i><i class="b b1"></i></span><span>Terminal (CLI) · ya funciona</span></li>
             <li><span class="pm" aria-hidden="true"><i></i><i></i><i></i></span><span>App de macOS · próximamente</span></li>
             <li><span class="pm" aria-hidden="true"><i></i><i></i><i></i></span><span>Windows y Linux · próximamente</span></li>
           </ul>
@@ -76,12 +76,12 @@ const jsonLd = {
     <div class="wrap sec-head">
       <div>
         <h2 id="t-sesion">Una sesión real</h2>
-        <p class="lead">Esto es texto, no una captura: puedes seleccionarlo. En silencio el medidor dibuja puntos; cuando te oye, barras. Lo confirmado se ve normal y lo que voz todavía está pensando, más tenue.</p>
-        <p class="small">Es una ilustración del flujo. Los tiempos y el texto cambian con lo que digas.</p>
+        <p class="lead">Esto es texto, no una captura: puedes seleccionarlo. El medidor dibuja puntos cuando hay silencio y barras cuando te oye. Lo confirmado se ve normal; lo que voz aún está pensando, más tenue.</p>
+        <p class="small">Es una ilustración. Los tiempos y el texto dependen de lo que digas.</p>
         <dl class="notes">
           <div><dt>El medidor</dt><dd>Si hablas y solo ves puntos, revisa el micrófono con <code>voz doctor --mic</code>.</dd></div>
-          <div><dt>El final</dt><dd>Al terminar, el texto ya está en el portapapeles: haces <code>Cmd-V</code> en Claude Code, en tu editor o donde quieras.</dd></div>
-          <div><dt>En una terminal estrecha</dt><dd>Las teclas pasan a su propia línea y se recorta antes el medidor. Achica esta pantalla y míralo.</dd></div>
+          <div><dt>El final</dt><dd>Al terminar, el texto ya está en el portapapeles. Pega con <code>Cmd-V</code> en Claude Code, en tu editor o donde quieras.</dd></div>
+          <div><dt>En una terminal estrecha</dt><dd>Las teclas bajan a su propia línea y el medidor se acorta. Achica esta ventana y lo ves.</dd></div>
         </dl>
       </div>
       <Terminal />
@@ -104,11 +104,11 @@ const jsonLd = {
           <div>
             <h3>Una línea <span class="tag">próximamente</span></h3>
             <code class="fake">curl -fsSL …/install.sh | sh</code>
-            <p class="note">Un solo comando que haga todo lo anterior. Todavía no existe: hoy usa la pestaña Hoy. Seguimiento en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
+            <p class="note">Un solo comando que haga todo lo de arriba. Aún no existe, usa la pestaña Hoy. Sigue el avance en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
           </div>
           <div>
             <h3>Homebrew <span class="tag">próximamente</span></h3>
-            <p class="note" style="margin-top:0">Instalar con <code>brew</code>, sin clonar el repositorio. Sin fecha, también en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
+            <p class="note" style="margin-top:0">Instalar con <code>brew</code>, sin clonar nada. Sin fecha, también en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
           </div>
         </div>
       </div>
@@ -120,9 +120,9 @@ const jsonLd = {
       <h2 id="t-priv">Tu voz no sale de tu Mac.</h2>
       <dl class="facts">
         <div><dt>Local</dt><dd>El audio y el texto se procesan en tu equipo. No hay cuentas, claves ni telemetría.</dd></div>
-        <div><dt>Sin conexión</dt><dd>Con el modelo ya descargado, voz no abre conexiones. La única excepción es esa primera descarga, y te avisa antes.</dd></div>
-        <div><dt>Solo tuyo</dt><dd>Mientras grabas, el audio se guarda en <code>~/.local/state/voz/</code> (las últimas 5 sesiones), con permisos que solo te dejan leerlo a ti. Puedes borrar la carpeta cuando quieras.</dd></div>
-        <div><dt>Abierto</dt><dd>Licencia MIT. Puedes leer el código y hacer fork.</dd></div>
+        <div><dt>Sin conexión</dt><dd>Con el modelo ya descargado, voz no se conecta a nada. La única excepción es esa primera descarga, y te avisa antes.</dd></div>
+        <div><dt>Solo tuyo</dt><dd>Mientras grabas, el audio se guarda en <code>~/.local/state/voz/</code> (las últimas 5 sesiones) y solo tú puedes leerlo. Borra la carpeta cuando quieras.</dd></div>
+        <div><dt>Abierto</dt><dd>Licencia MIT. El código es público: léelo, haz un fork, cámbialo.</dd></div>
       </dl>
     </div>
   </section>
@@ -131,7 +131,7 @@ const jsonLd = {
     <div class="wrap sec-head">
       <div>
         <h2 id="t-nov">Novedades</h2>
-        <p class="lead">Lo último que se publicó. El historial completo sale del CHANGELOG del repositorio.</p>
+        <p class="lead">Lo último que publicamos. El historial completo viene del CHANGELOG del repositorio.</p>
         <a class="more" href="/cambios">Ver todas las versiones</a>
       </div>
       <ReleaseCard release={latest} mode="home" latest />

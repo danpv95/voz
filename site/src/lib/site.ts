@@ -6,7 +6,7 @@ export const LICENSE_URL = `${REPO}/blob/main/LICENSE`;
 export const NAME = 'voz';
 export const TAGLINE = 'Dicta como hablas. Pega como escribes.';
 export const DESCRIPTION =
-  'Dictado por voz para la terminal, 100 % en tu Mac. Hablas, voz transcribe en local con Whisper y deja el texto en el portapapeles.';
+  'Dictado por voz para la terminal, 100 % en tu Mac. Hablas, voz lo pasa a texto con Whisper y lo deja en el portapapeles.';
 
 export const tagUrl = (version: string): string => `${REPO}/releases/tag/v${version}`;
 export const guideUrl = (version: string): string =>

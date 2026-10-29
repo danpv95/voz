@@ -1,20 +1,21 @@
 ---
 // Guía «Hoy». Se usa en la sección #instalar y dentro del modal de instalación.
 ---
-<p class="lead">Hoy se instala desde el repositorio. No hace falta <code>sudo</code>, y npm no aplica: voz es una herramienta de Python, no un paquete de Node.</p>
+<p class="lead">Por ahora se instala desde el repositorio. No necesitas <code>sudo</code>. Y no es un paquete de npm: voz está hecha en Python.</p>
 <div class="inst">
   <div>
     <ul class="reqs">
       <li>Un Mac con chip Apple Silicon (M1 o posterior).</li>
       <li>Homebrew y Python 3.12. Si falta Python: <code>brew install python@3.12</code></li>
-      <li>Opcional, solo para transcribir archivos de audio: <code>brew install ffmpeg</code></li>
+      <li>Opcional, para transcribir archivos de audio: <code>brew install ffmpeg</code></li>
     </ul>
     <ol class="steps">
       <li>
         <h3>Comprueba tu Mac y Python</h3>
         <div class="body">
-          <div class="block"><pre tabindex="0"><code>uname -m                 # debe decir arm64 (Apple Silicon)
-python3.12 --version     # si no existe: brew install python@3.12</code></pre><button class="copy" type="button" data-copy>Copiar</button></div>
+          <div class="block"><pre tabindex="0"><code>uname -m
+python3.12 --version</code></pre><button class="copy" type="button" data-copy>Copiar</button></div>
+          <p class="note"><code>uname -m</code> debe decir <code>arm64</code>. Si Python 3.12 no aparece, instálalo con <code>brew install python@3.12</code>.</p>
         </div>
       </li>
       <li>
@@ -39,10 +40,10 @@ source ~/.zshrc</code></pre><button class="copy" type="button" data-copy>Copiar<
         </div>
       </li>
       <li>
-        <h3>Comprueba que todo está en orden</h3>
+        <h3>Revisa que todo quedó bien</h3>
         <div class="body">
           <div class="block"><pre tabindex="0"><code>voz doctor</code></pre><button class="copy" type="button" data-copy>Copiar</button></div>
-          <p class="note">Revisa la instalación sin usar la red.</p>
+          <p class="note">Revisa la instalación sin conectarse a internet.</p>
         </div>
       </li>
     </ol>
@@ -50,6 +51,6 @@ source ~/.zshrc</code></pre><button class="copy" type="button" data-copy>Copiar<
   <aside class="aside" aria-label="Primer uso">
     <h3>Primer uso</h3>
     <p class="keys"><kbd>voz</kbd><kbd>↵</kbd><span class="s">hablas</span><kbd>↵</kbd><kbd>Cmd-V</kbd></p>
-    <p class="note" style="margin-top:0">Abre voz en una pestaña aparte de la terminal, no dentro de la sesión de tu agente. La primera vez descarga el modelo (unos 1,6 GB). Es el único momento en que voz usa la red.</p>
+    <p class="note" style="margin-top:0">Abre voz en una pestaña aparte de la terminal, no dentro de la sesión de tu agente. La primera vez descarga el modelo (unos 1,6 GB); es la única vez que usa internet.</p>
   </aside>
 </div>

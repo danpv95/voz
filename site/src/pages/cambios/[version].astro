@@ -35,7 +35,7 @@ const slugOf = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/
           : (r.date ? formatDate(r.date) : 'Sin fecha')}
       </p>
       <ul class="links">
-        {r.releaseUrl && <li><a class="btn primary" href={r.releaseUrl}>Ver el release en GitHub</a></li>}
+        {r.releaseUrl && <li><a class="btn primary" href={r.releaseUrl}>Ver la versión en GitHub</a></li>}
         {r.compareUrl && <li><a class="btn" href={r.compareUrl}>Comparar con {r.previous}</a></li>}
         {guide && <li><a class="btn" href={guide.href}>{guide.direct ? 'Guía (PDF)' : 'Guía y descargas'}</a></li>}
         {r.unreleased && <li><a class="btn" href={CHANGELOG_URL}>Ver el CHANGELOG</a></li>}

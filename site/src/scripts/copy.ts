@@ -48,6 +48,6 @@ document.addEventListener('click', async (event) => {
       if (live) live.textContent = '';
     }, 1800);
   } else {
-    button.textContent = 'Selecciona y copia';
+    button.textContent = 'Cópialo a mano';
   }
 });

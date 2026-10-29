@@ -1,0 +1,33 @@
+# corrections.toml: correcciones offline post-transcripción para `voz`.
+#
+# Copia este archivo a  ~/.config/voz/corrections.toml  y edítalo:
+#     mkdir -p ~/.config/voz
+#     cp config/corrections.example.toml ~/.config/voz/corrections.toml
+#
+# REGLAS:
+#   - Solo NOMBRES PROPIOS y términos técnicos que Whisper oye mal.
+#   - NUNCA pares de palabras comunes (poner/poder, casa/caza): son errores
+#     acústicos y corregirlos a ciegas rompería frases legítimas.
+#   - La clave (izquierda) matchea sin importar mayúsculas; el valor (derecha)
+#     se escribe tal cual (define aquí la capitalización canónica).
+#   - Multi-palabra gana sobre palabra suelta. Evita reglas sueltas que dañen el
+#     inglés legítimo ("backup to the cloud"): por eso no hay "cloud" = "Claude".
+#   - Mínimo 3 caracteres por clave.
+#   - Una regla puede cambiar SOLO las mayúsculas ("nit" = "NIT"): toda variante
+#     (nit, Nit, NIT) pasa a la forma exacta del valor, respetando límites de
+#     palabra (no toca "nitido"). Solo para siglas y nombres propios sin ambigüedad.
+
+[replacements]
+"cloud code" = "Claude Code"
+"cloudcode" = "Claude Code"
+"clod" = "Claude"
+"vox li" = "voz CLI"
+"vos cli" = "voz CLI"
+"voz li" = "voz CLI"
+"voz l" = "voz CLI"
+"supa base" = "Supabase"
+"supavase" = "Supabase"
+"su pavase" = "Supabase"
+"neki" = "Nequi"
+"neque" = "Nequi"
+"nit" = "NIT"

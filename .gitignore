@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+*.swp
+*.egg-info/
+dist/
+build/
+
+# Audio (voz propia, grabaciones y audios generados)
+bench/**/*.wav
+*.wav
+
+# Resultados de bench
+bench/*.txt
+
+# Archivos de agentes / editores
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/

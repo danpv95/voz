@@ -1,0 +1,17 @@
+[project]
+name = "voz-cli"
+version = "0.1.0"
+description = "Dictado por voz local para macOS Apple Silicon: transcripción offline con mlx-whisper"
+requires-python = ">=3.12"
+license = "MIT"
+classifiers = [
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: runs the real mlx-whisper model (needs it cached); run with -m integration",
+]

@@ -1,0 +1,21 @@
+#!/bin/sh
+# Wrapper: run voz.py with the project's dedicated venv python, from anywhere.
+# Resolves its own directory following symlinks (e.g. ~/.local/bin/voz -> repo/bin/voz).
+SELF="$0"
+while [ -L "$SELF" ]; do
+    LINK="$(readlink "$SELF")"
+    case "$LINK" in
+        /*) SELF="$LINK" ;;
+        *) SELF="$(dirname "$SELF")/$LINK" ;;
+    esac
+done
+HERE="$(cd "$(dirname "$SELF")/.." && pwd -P)"
+
+# 100% local: resolve the model from the HF cache without hitting the network,
+# and silence the download bars / telemetry noise on every run.
+export HF_HUB_OFFLINE=1
+export HF_HUB_DISABLE_PROGRESS_BARS=1
+export HF_HUB_DISABLE_TELEMETRY=1
+export TOKENIZERS_PARALLELISM=false
+
+exec "$HERE/.venv/bin/python" "$HERE/src/voz.py" "$@"

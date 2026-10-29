@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>voz: guía completa (v0.1.0)</title>
+<style>
+:root{--accent:#0e7490;--ink:#1d242b;--muted:#5a6672;--line:#d9e0e6;--soft:#f2f6f8;--code:#eef2f5;--warn:#9a5b00;--warnbg:#fff6e5}
+*{box-sizing:border-box}
+@page{size:A4;margin:14mm 12mm;@bottom-center{content:counter(page);font:8pt -apple-system,Helvetica,sans-serif;color:#7b8794}}
+@page :first{@bottom-center{content:""}}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;color:var(--ink);font:9.6pt/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif}
+@media print{*{box-shadow:none!important}}
+a{color:var(--accent);text-decoration:none}
+code,pre,.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+code{font-size:.88em;background:var(--code);padding:.5pt 3pt;border-radius:3px}
+h1{font-size:17pt;line-height:1.2;color:var(--accent);margin:20pt 0 7pt;padding-bottom:3pt;border-bottom:1.6px solid var(--accent);break-after:avoid}
+h2{font-size:12pt;line-height:1.25;margin:14pt 0 4pt;color:var(--ink);break-after:avoid}
+h3{font-size:10pt;margin:10pt 0 3pt;color:var(--accent);break-after:avoid}
+p{margin:4pt 0;orphans:3;widows:3}
+ul,ol{margin:3pt 0 5pt;padding-left:16pt}
+li{margin:1.5pt 0;orphans:2;widows:2}
+pre{background:var(--code);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:3px;padding:5pt 8pt;margin:5pt 0;font-size:7.9pt;line-height:1.4;white-space:pre-wrap;break-inside:avoid}
+pre code{background:none;padding:0;font-size:inherit}
+table{border-collapse:collapse;width:100%;margin:5pt 0 7pt;font-size:8.6pt}
+thead{display:table-header-group}
+tr{break-inside:avoid}
+th{background:var(--soft);text-align:left;border-bottom:1.5px solid var(--accent);font-weight:600}
+th,td{padding:3pt 5pt;border-bottom:1px solid var(--line);vertical-align:top}
+td code{font-size:.92em}
+.note{border-left:3px solid var(--accent);background:var(--soft);padding:4pt 8pt;margin:6pt 0;break-inside:avoid;font-size:9pt}
+.warn{border-left-color:var(--warn);background:var(--warnbg)}
+.muted{color:var(--muted)}
+/* portada */
+.cover{height:262mm;display:flex;flex-direction:column;justify-content:space-between;break-after:page;padding:6mm 2mm 0}
+.cover .top{border-top:6px solid var(--accent);padding-top:10mm}
+.cover .kicker{font-size:10pt;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.cover h1.title{font-size:84pt;line-height:1;margin:6mm 0 4mm;border:0;color:var(--ink);letter-spacing:-.02em}
+.cover .sub{font-size:17pt;line-height:1.3;color:var(--ink);max-width:130mm}
+.cover .lead{margin-top:10mm;font-size:11pt;color:var(--muted);max-width:140mm}
+.cover .meta{border-top:1px solid var(--line);padding-top:5mm;font-size:9.5pt;color:var(--muted);display:flex;justify-content:space-between;gap:10mm}
+.cover .meta b{color:var(--ink)}
+/* indice */
+.toc-page{break-after:page}
+.toc-page h1{margin-top:0}
+.toc a{display:flex;align-items:baseline;gap:4pt;color:var(--ink);padding:.9pt 0;font-size:9.4pt}
+.toc a.t1{font-weight:600;margin-top:4pt}
+.toc a.t2{padding-left:14pt;font-size:8.6pt;color:#34414c}
+.toc .dots{flex:1;border-bottom:1px dotted #9aa7b2;transform:translateY(-2px)}
+.toc .pn{min-width:16pt;text-align:right;font-variant-numeric:tabular-nums}
+/* diagrama */
+.arch{border:1px solid var(--line);border-radius:6px;padding:6pt 7pt;margin:6pt 0;break-inside:avoid;background:#fbfdfe}
+.lane{display:flex;gap:6pt;align-items:stretch;margin:0}
+.lane+.vlink{margin:0}
+.lane-label{flex:0 0 52pt;font-size:7.4pt;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center}
+.row{display:flex;gap:3pt;flex:1;align-items:stretch}
+.box{flex:1;border:1.3px solid var(--accent);border-radius:5px;background:#fff;padding:3pt 4pt;font-size:7.5pt;line-height:1.25;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.box b{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:8.6pt;color:var(--accent)}
+.box span{color:var(--muted)}
+.box.soft{border-color:#9db4bf;background:var(--soft)}
+.box.ext{border-style:dashed;border-color:#9aa7b2;background:#fff}
+.box.ext b{color:#4b5963}
+.arrow{flex:0 0 11pt;align-self:center;text-align:center;color:var(--accent);font-weight:700;font-size:11pt}
+.vlink{text-align:center;color:var(--muted);font-size:7.2pt;line-height:1.1;padding:1.5pt 0 1.5pt 52pt}
+.vlink b{color:var(--accent)}
+.legend{font-size:7.6pt;line-height:1.3;color:var(--muted);margin-top:3pt}
+/* tarjetas de modulo */
+.card{border:1px solid var(--line);border-radius:5px;padding:4pt 8pt 4pt;margin:6pt 0;break-inside:avoid;font-size:8.9pt;line-height:1.42}
+.card p{margin:1.5pt 0}
+.card li{margin:.8pt 0}
+.card h2{margin:0 0 2pt;font-size:11pt}
+.card h2 code{font-size:.95em;background:var(--soft);color:var(--accent)}
+.card .k{font-size:7.4pt;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:2pt}
+.card ul{margin:0 0 1pt;padding-left:14pt}
+.steps{counter-reset:s;list-style:none;padding:0;margin:5pt 0}
+.steps li{counter-increment:s;position:relative;padding:3pt 0 3pt 24pt;border-bottom:1px solid var(--line);break-inside:avoid;margin:0}
+.steps li:before{content:counter(s);position:absolute;left:0;top:3pt;width:16pt;height:16pt;border-radius:50%;background:var(--accent);color:#fff;font-size:8pt;font-weight:700;text-align:center;line-height:16pt}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="top">
+    <div class="kicker">Guía completa · v0.1.0</div>
+    <h1 class="title">voz</h1>
+    <div class="sub">Dictado por voz para la terminal, local y sin nube. Arquitectura, uso y mantenimiento.</div>
+    <div class="lead">Para quien quiere entender cómo funciona por dentro, mantenerlo o hacer un fork. Documenta lo que el código hace hoy, con los datos medidos detrás de cada decisión.</div>
+  </div>
+  <div class="meta">
+    <div><b>Autor</b><br>Daniel Patiño Vargas<br>Colombia</div>
+    <div><b>Versión</b><br>0.1.0<br>29 de octubre de 2026</div>
+    <div><b>Plataforma</b><br>macOS, Apple Silicon<br>Python 3.12</div>
+    <div><b>Licencia</b><br>MIT</div>
+  </div>
+</section>
+
+<section class="toc-page">
+  <h1>Índice</h1>
+  <nav class="toc">
+    <a class="t1" href="#s1"><span class="tt">1. Qué es y filosofía</span><span class="dots"></span><span class="pn">3</span></a>
+    <a class="t1" href="#s2"><span class="tt">2. Instalación y requisitos</span><span class="dots"></span><span class="pn">3</span></a>
+    <a class="t1" href="#s3"><span class="tt">3. Uso completo</span><span class="dots"></span><span class="pn">4</span></a>
+    <a class="t2" href="#h1"><span class="tt">3.1 Comandos</span><span class="dots"></span><span class="pn">4</span></a>
+    <a class="t2" href="#h2"><span class="tt">3.2 Banderas</span><span class="dots"></span><span class="pn">5</span></a>
+    <a class="t2" href="#h3"><span class="tt">3.3 Combinaciones que el parser rechaza</span><span class="dots"></span><span class="pn">5</span></a>
+    <a class="t2" href="#h4"><span class="tt">3.4 Códigos de salida</span><span class="dots"></span><span class="pn">6</span></a>
+    <a class="t2" href="#h5"><span class="tt">3.5 Interfaz y teclas del modo en vivo</span><span class="dots"></span><span class="pn">6</span></a>
+    <a class="t2" href="#h6"><span class="tt">3.6 Tres formas de usar el micrófono</span><span class="dots"></span><span class="pn">7</span></a>
+    <a class="t2" href="#h7"><span class="tt">3.7 Ejemplos</span><span class="dots"></span><span class="pn">7</span></a>
+    <a class="t1" href="#s4"><span class="tt">4. Arquitectura</span><span class="dots"></span><span class="pn">8</span></a>
+    <a class="t2" href="#m1"><span class="tt">4.1 voz.py · CLI y orquestación</span><span class="dots"></span><span class="pn">8</span></a>
+    <a class="t2" href="#m2"><span class="tt">4.2 record.py · captura y detección de voz</span><span class="dots"></span><span class="pn">8</span></a>
+    <a class="t2" href="#m3"><span class="tt">4.3 live.py · tramos en vivo</span><span class="dots"></span><span class="pn">9</span></a>
+    <a class="t2" href="#m4"><span class="tt">4.4 stt.py · transcripción y filtros</span><span class="dots"></span><span class="pn">9</span></a>
+    <a class="t2" href="#m5"><span class="tt">4.5 corrections.py · glosario</span><span class="dots"></span><span class="pn">9</span></a>
+    <a class="t2" href="#m6"><span class="tt">4.6 output.py · salida</span><span class="dots"></span><span class="pn">10</span></a>
+    <a class="t2" href="#m7"><span class="tt">4.7 autosave.py · grabación a salvo</span><span class="dots"></span><span class="pn">10</span></a>
+    <a class="t2" href="#m8"><span class="tt">4.8 liveui.py · el Shell de la interfaz</span><span class="dots"></span><span class="pn">10</span></a>
+    <a class="t2" href="#m9"><span class="tt">4.9 flow.py · máquina de estados</span><span class="dots"></span><span class="pn">11</span></a>
+    <a class="t2" href="#m10"><span class="tt">4.10 ui.py · terminal</span><span class="dots"></span><span class="pn">11</span></a>
+    <a class="t2" href="#m11"><span class="tt">4.11 doctor.py y config.py</span><span class="dots"></span><span class="pn">11</span></a>
+    <a class="t1" href="#s5"><span class="tt">5. Flujo de datos de un dictado</span><span class="dots"></span><span class="pn">11</span></a>
+    <a class="t1" href="#s6"><span class="tt">6. Decisiones de diseño y por qué</span><span class="dots"></span><span class="pn">12</span></a>
+    <a class="t1" href="#s7"><span class="tt">7. Configuración</span><span class="dots"></span><span class="pn">14</span></a>
+    <a class="t2" href="#h8"><span class="tt">7.1 Archivos y carpetas</span><span class="dots"></span><span class="pn">14</span></a>
+    <a class="t2" href="#h9"><span class="tt">7.2 config.toml</span><span class="dots"></span><span class="pn">14</span></a>
+    <a class="t2" href="#h10"><span class="tt">7.3 corrections.toml</span><span class="dots"></span><span class="pn">15</span></a>
+    <a class="t2" href="#h11"><span class="tt">7.4 Variables de entorno</span><span class="dots"></span><span class="pn">15</span></a>
+    <a class="t2" href="#h12"><span class="tt">7.5 Recuperar una sesión</span><span class="dots"></span><span class="pn">15</span></a>
+    <a class="t1" href="#s8"><span class="tt">8. Tests y benchmarks</span><span class="dots"></span><span class="pn">15</span></a>
+    <a class="t2" href="#h13"><span class="tt">8.1 Tests</span><span class="dots"></span><span class="pn">15</span></a>
+    <a class="t2" href="#h14"><span class="tt">8.2 Benchmarks</span><span class="dots"></span><span class="pn">16</span></a>
+    <a class="t2" href="#h15"><span class="tt">8.3 Grabar tus 3 frases para bench_src.py</span><span class="dots"></span><span class="pn">17</span></a>
+    <a class="t1" href="#s9"><span class="tt">9. Guía para forks</span><span class="dots"></span><span class="pn">17</span></a>
+    <a class="t2" href="#h16"><span class="tt">9.1 Enchufar otro motor de transcripción</span><span class="dots"></span><span class="pn">17</span></a>
+    <a class="t2" href="#h17"><span class="tt">9.2 Portar a Windows o Linux</span><span class="dots"></span><span class="pn">18</span></a>
+    <a class="t2" href="#h18"><span class="tt">9.3 Añadir un subcomando</span><span class="dots"></span><span class="pn">18</span></a>
+    <a class="t2" href="#h19"><span class="tt">9.4 Cómo contribuir y versionar</span><span class="dots"></span><span class="pn">19</span></a>
+    <a class="t1" href="#s10"><span class="tt">10. Limitaciones conocidas y roadmap</span><span class="dots"></span><span class="pn">19</span></a>
+    <a class="t2" href="#h20"><span class="tt">10.1 Limitaciones</span><span class="dots"></span><span class="pn">19</span></a>
+    <a class="t2" href="#h21"><span class="tt">10.2 Roadmap</span><span class="dots"></span><span class="pn">20</span></a>
+    <a class="t1" href="#s11"><span class="tt">11. Licencia</span><span class="dots"></span><span class="pn">20</span></a>
+  </nav>
+</section>
+
+<h1 id="s1">1. Qué es y filosofía</h1>
+<p><code>voz</code> es una herramienta de línea de comandos que convierte tu voz en texto, en tu propio Mac, con <a href="https://pypi.org/project/mlx-whisper/">mlx-whisper</a> (Whisper de OpenAI ejecutado con MLX, el framework de Apple para sus chips). La entrada es el micrófono o un archivo de audio. La salida es la transcripción por <em>stdout</em>, más el portapapeles, y opcionalmente un archivo de texto, un <code>.srt</code> o un <code>.json</code>.</p>
+<p>Nació para dictarle a un agente de código desde la terminal. El portapapeles es la integración: no hay plugin, solo <code>Cmd-V</code>. De ahí salió también la transcripción de notas de voz y de reuniones grabadas.</p>
+
+<h2>Principios</h2>
+<ul>
+  <li><b>Local y privado.</b> El audio y el texto no salen del equipo. Con el modelo en caché, el proceso no abre conexiones (ver sección 7). La única salida a la red es la descarga del modelo la primera vez.</li>
+  <li><b>La terminal primero.</b> En stdout va solo la transcripción; todo lo demás (estado, avisos, interfaz) va a stderr. Por eso <code>voz archivo.m4a | pbcopy</code> o una redirección funcionan sin ensuciar nada.</li>
+  <li><b>Nunca perder una grabación.</b> Mientras grabas, el audio y el texto confirmado se escriben a disco sobre la marcha. Descartar una grabación no borra el audio y se puede deshacer.</li>
+  <li><b>Pocas dependencias.</b> La interfaz de terminal usa solo secuencias ANSI y <code>termios</code>. No hay librerías de interfaz.</li>
+  <li><b>Medir antes de decidir.</b> Cada umbral y cada filtro de este proyecto sale de una medición (sección 6), y las decisiones cerradas se documentan con su dato para no reabrirlas por intuición.</li>
+</ul>
+
+<h2>Lo que no es</h2>
+<p>No es una app con ventana, no separa voces (diarización), no captura el audio del sistema (por ejemplo, el de una videollamada) y no expone una API. Solo corre en macOS con chip Apple Silicon. La sección 10 detalla estas limitaciones y lo que sigue.</p>
+
+<h1 id="s2">2. Instalación y requisitos</h1>
+<table>
+<thead><tr><th>Requisito</th><th>Detalle</th></tr></thead>
+<tbody>
+<tr><td>Sistema</td><td>macOS con Apple Silicon (M1 o posterior): <code>uname -m</code> debe decir <code>arm64</code>. El motor MLX y <code>pbcopy</code>/<code>pbpaste</code> lo exigen.</td></tr>
+<tr><td>Python</td><td>3.12 (<code>brew install python@3.12</code> si no lo tienes). <code>voz doctor</code> marca un aviso si usas otra versión.</td></tr>
+<tr><td>Espacio</td><td>Entorno virtual de unos 1,1 GB (mlx-whisper arrastra torch). Modelo turbo, unos 1,6 GB. Modelo <code>--accurate</code>, unos 3 GB más la primera vez que lo uses.</td></tr>
+<tr><td>ffmpeg</td><td>Solo para transcribir archivos comprimidos. El dictado por micrófono no lo usa. <code>brew install ffmpeg</code>. <code>voz doctor</code> lo marca como aviso, no como problema crítico.</td></tr>
+<tr><td>Micrófono</td><td>Permiso de macOS para la aplicación de terminal que uses.</td></tr>
+</tbody></table>
+
+<h2>Pasos</h2>
+<pre><code>uname -m                                   # arm64
+python3.12 --version                       # si falta: brew install python@3.12
+git clone https://github.com/danpv95/voz voz
+cd voz
+python3.12 -m venv .venv
+./.venv/bin/python -m pip install -r requirements.lock.txt
+
+mkdir -p ~/.local/bin
+ln -sf "$PWD/bin/voz" ~/.local/bin/voz
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc   # si which voz no lo encuentra
+source ~/.zshrc
+
+voz doctor                                 # verificación sin red</code></pre>
+<p><code>requirements.txt</code> pide <code>mlx-whisper&gt;=0.4.3</code>, <code>sounddevice&gt;=0.5</code> (trae PortAudio dentro de su wheel de macOS, no hace falta <code>brew install portaudio</code>) y <code>numpy</code>. SciPy llega como dependencia de mlx-whisper y <code>voz</code> lo usa directamente para el filtro de banda. <code>requirements.lock.txt</code> fija las versiones exactas del entorno con el que se probó esta versión y es la forma recomendada de instalar: la instalación sale igual en cualquier equipo. <code>requirements.txt</code> solo pide mínimos y toma las últimas versiones; úsalo si prefieres actualizar.</p>
+
+<div class="note"><b>No borres ni muevas la carpeta clonada: <code>voz</code> vive ahí.</b> El comando es un enlace a <code>bin/voz</code> y usa el <code>.venv</code> de esa carpeta. Si la mueves, repite el enlace.</div>
+
+<h2>El wrapper <code>bin/voz</code></h2>
+<p>Es un script <code>sh</code> de pocas líneas. Resuelve su propia ubicación siguiendo enlaces simbólicos (por eso funciona el <code>ln -sf</code> de arriba), fija las variables de entorno de la sección 7 y hace <code>exec</code> del Python del entorno virtual del repo con <code>src/voz.py</code>. No hay ruta fija en ninguna parte.</p>
+
+<h2>Permiso de micrófono</h2>
+<p>macOS concede el permiso a la aplicación de terminal, no al script. Si <code>voz</code> muestra «✖ No llega audio del micrófono» (en el flujo simple, «Silencio detectado»), activa tu terminal en Ajustes del Sistema, Privacidad y seguridad, Micrófono, y pulsa <code>↵</code> para reintentar: la interfaz vuelve a consultar el dispositivo por defecto. Nunca muestra un traceback. El aviso del flujo simple también sugiere <code>tccutil reset Microphone</code> con el identificador de Terminal o de iTerm, que reinicia el permiso de esa aplicación y de ninguna otra.</p>
+
+<div class="note"><b>Primera ejecución.</b> La primera transcripción descarga el modelo a <code>~/.cache/huggingface/</code>. <code>voz</code> lo muestra en la propia interfaz (<code>Descargando modelo · 420 MB / ~1,6 GB · esc salir</code>, y después <code>Cargando modelo… N s</code>; sin cifras fiables, <code>Descargando modelo (~1,6 GB, solo la primera vez)… N s</code>) y vuelve a poner el modo sin conexión después. Una descarga cortada continúa en el siguiente arranque.</div>
+
+<h1 id="s3">3. Uso completo</h1>
+
+<h2 id="h1">3.1 Comandos</h2>
+<table>
+<thead><tr><th>Comando</th><th>Qué hace</th></tr></thead>
+<tbody>
+<tr><td><code>voz</code></td><td>Dicta por el micrófono con transcripción en vivo y copia al terminar.</td></tr>
+<tr><td><code>voz &lt;archivo&gt;</code></td><td>Transcribe un archivo de audio (m4a, ogg, opus, mp3, wav; lo que ffmpeg decodifique).</td></tr>
+<tr><td><code>voz doctor</code></td><td>Revisa Python, módulos, modelos (disponible, incompleto si faltan los pesos, o sin descargar), ffmpeg (aviso si falta), micrófono por defecto, glosario y el comando <code>voz</code>. Sin red. Con <code>--mic</code> graba 1 s y mide el nivel.</td></tr>
+<tr><td><code>voz devices</code></td><td>Imprime la lista de dispositivos de audio que ve PortAudio (<code>sounddevice.query_devices()</code>). Sirve para depurar.</td></tr>
+<tr><td><code>voz --version</code></td><td>Imprime <code>voz 0.1.0</code> y sale.</td></tr>
+</tbody></table>
+
+<h2 id="h2">3.2 Banderas</h2>
+<p>Estas son todas las del parser (<code>build_parser</code> en <code>src/voz.py</code>). <code>--help</code> los muestra en español junto con las teclas del modo en vivo y las rutas de configuración. Existe además <code>--sim</code>, interna y oculta de <code>--help</code>, que alimenta la interfaz con un archivo de audio en lugar del micrófono para pruebas y demos.</p>
+<table>
+<thead><tr><th>Bandera</th><th>Aplica a</th><th>Default</th><th>Efecto</th></tr></thead>
+<tbody>
+<tr><td><code>--loop</code></td><td>micrófono</td><td>apagado</td><td>Repite sin salir. Con la interfaz interactiva no cambia nada (grabar otra, <code>r</code>, ya está incorporado). En el flujo simple o con <code>--no-live</code> repite dictados sin recargar el modelo; <code>Ctrl-C</code> sale.</td></tr>
+<tr><td><code>--model REPO</code></td><td>todo</td><td>turbo</td><td>Repositorio de mlx-whisper. Default <code>mlx-community/whisper-large-v3-turbo</code>. Excluyente con <code>--accurate</code>.</td></tr>
+<tr><td><code>--accurate</code></td><td>todo</td><td>apagado</td><td>Usa <code>mlx-community/whisper-large-v3-mlx</code>: más lento y más preciso.</td></tr>
+<tr><td><code>--lang L</code></td><td>todo</td><td><code>auto</code></td><td><code>auto</code> mantiene el idioma de la sesión: empieza por tu idioma principal (<code>[idioma] principal</code>, si no el del sistema, si no español) y solo cambia con evidencia fuerte; en archivos detecta por frase. Mezclar es/en en una sesión sigue funcionando cuando el cambio es claro; en llamadas o con varias voces conviene <code>--lang es</code>. Otro valor (<code>es</code>, <code>en</code>, ...) lo fija. El parser no lo valida todavía: un código inválido falla más tarde.</td></tr>
+<tr><td><code>--out RUTA</code></td><td>todo</td><td>ninguno</td><td>Además, añade el texto al final de ese archivo (con salto de línea). Si no se puede escribir (sin permiso, carpeta inexistente), la interfaz y el flujo simple avisan con un mensaje claro y salen con código 1; el texto sigue en el portapapeles y en la carpeta de estado.</td></tr>
+<tr><td><code>--no-copy</code></td><td>todo</td><td>apagado</td><td>No toca el portapapeles. Gana sobre la configuración.</td></tr>
+<tr><td><code>--no-live</code></td><td>micrófono</td><td>apagado</td><td>Modo anterior: graba todo (<code>↵</code> empieza, <code>↵</code> termina) y transcribe al final.</td></tr>
+<tr><td><code>-y</code>, <code>--yes</code></td><td>micrófono</td><td>apagado</td><td>En el flujo simple en vivo, copia sin preguntar. La interfaz interactiva se rige por la configuración <code>copiar</code>.</td></tr>
+<tr><td><code>--no-trim</code></td><td>micrófono con <code>--no-live</code></td><td>apagado</td><td>No recorta el silencio del inicio y del final de la grabación.</td></tr>
+<tr><td><code>--srt</code></td><td>archivo</td><td>apagado</td><td>Escribe <code>&lt;audio&gt;.srt</code> con tiempos, junto al audio.</td></tr>
+<tr><td><code>--json</code></td><td>archivo</td><td>apagado</td><td>Escribe <code>&lt;audio&gt;.json</code> con <code>start</code>, <code>end</code>, <code>text</code> y, en <code>auto</code>, <code>lang</code>.</td></tr>
+<tr><td><code>--mic</code></td><td><code>doctor</code></td><td>apagado</td><td>Graba 1 s y mide el micrófono.</td></tr>
+<tr><td><code>--version</code></td><td>-</td><td>-</td><td>Imprime la versión.</td></tr>
+</tbody></table>
+
+<h2 id="h3">3.3 Combinaciones que el parser rechaza</h2>
+<p>Terminan con el código de salida 2 y un mensaje de uso.</p>
+<ul>
+  <li><code>--srt</code> o <code>--json</code> sin un archivo de audio.</li>
+  <li><code>--loop</code> junto a un archivo o a <code>doctor</code>/<code>devices</code>.</li>
+  <li><code>-y</code> junto a <code>--no-copy</code> (se contradicen).</li>
+  <li><code>--no-trim</code> con el micrófono sin <code>--no-live</code> (el modo en vivo ya corta por pausas).</li>
+  <li><code>--model</code> junto a <code>--accurate</code>.</li>
+</ul>
+
+<h2 id="h4">3.4 Códigos de salida</h2>
+<table>
+<thead><tr><th>Código</th><th>Significa</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>Todo bien. También al salir con <code>esc</code> desde «Listo» sin haber grabado.</td></tr>
+<tr><td>1</td><td>No se transcribió nada, no hay voz, el archivo no existe, falló la carga del modelo o no se pudo escribir en <code>--out</code> (en la interfaz y el flujo simple).</td></tr>
+<tr><td>2</td><td>Error de uso de banderas, o <code>--sim</code> fuera de la interfaz interactiva.</td></tr>
+<tr><td>130</td><td>Interrumpido con <code>Ctrl-C</code>, siempre, haya texto o no. El texto se conserva en el portapapeles (según la configuración), en stdout si no es una terminal y en <code>--out</code>.</td></tr>
+</tbody></table>
+
+<h2 id="h5">3.5 Interfaz y teclas del modo en vivo</h2>
+<p style="break-after:avoid">Así se ve una sesión. Los tiempos y el texto cambian con lo que digas.</p>
+<pre><code>voz  ·  turbo  ·  auto  ·  🎙 MacBook Pro Microphone
+⠋ Cargando modelo… 3 s   esc salir
+
+● Listo   ↵ hablar · esc salir
+  habla con pausas cortas: voz transcribe mientras hablas · voz --help para más
+
+● Escuchando  00:12  ·····▃▅▃··  es   ↵ terminar · p pausa · esc descartar
+⠋ Terminando… 2 s · 1 tramo pendiente</code></pre>
+<table>
+<thead><tr><th>Elemento</th><th>Qué significa</th></tr></thead>
+<tbody>
+<tr><td>Cabecera</td><td>Modelo abreviado (<code>turbo</code>, o <code>large-v3</code> con <code>--accurate</code>), idioma y, tras el icono 🎙, el micrófono de entrada por defecto del sistema. Si no es el que esperas, cámbialo en los ajustes de sonido de macOS.</td></tr>
+<tr><td>Descargando / cargando modelo</td><td>La primera vez, <code>⠋ Descargando modelo · 420 MB / ~1,6 GB · esc salir</code>; después (y siempre en los arranques siguientes) <code>⠋ Cargando modelo… 3 s</code> con un contador y la sugerencia <code>esc salir</code>. Un <code>↵</code> en este momento se ignora con el aviso «↵ ignorado: el modelo todavía está cargando».</td></tr>
+<tr><td>Pista de primer uso</td><td>En gris bajo «Listo», solo la primera vez: habla con pausas cortas, porque <code>voz</code> transcribe mientras hablas.</td></tr>
+<tr><td>Medidor</td><td>En silencio, puntos tenues (<code>·</code>). Con voz detectada, barras de color (<code>▁▂▃▅▇</code>). Las barras de color significan que <code>voz</code> te está detectando; si hablas y solo ves puntos, revisa el micrófono (<code>voz doctor --mic</code>).</td></tr>
+<tr><td>Terminal estrecha</td><td>Si la línea de estado no cabe (menos de unas 60 columnas), las teclas pasan a una segunda línea propia; se recorta antes el medidor y los detalles, nunca las teclas. Los avisos de pérdida de audio van en su propia línea.</td></tr>
+<tr><td>Terminando</td><td><code>⠋ Terminando… 2 s · 1 tramo pendiente</code>: un contador de segundos y cuántos tramos faltan por transcribir antes de la revisión. Espera como máximo 20 s: si el transcriptor no responde, o pulsas <code>Ctrl-C</code> otra vez, sale igual; el WAV queda guardado, la sesión se marca incompleta (el <code>.lock</code> se conserva) y el siguiente <code>voz</code> ofrece re-transcribirla.</td></tr>
+</tbody></table>
+<p>Las teclas son las de la máquina de estados <code>flow.py</code>. Las letras no distinguen mayúsculas.</p>
+<table>
+<thead><tr><th>Estado</th><th>Teclas</th></tr></thead>
+<tbody>
+<tr><td>Listo</td><td><code>↵</code> o espacio: hablar · <code>esc</code>: salir. Mientras el modelo carga (<code>⠋ Cargando modelo… N s</code>), un <code>↵</code> se ignora con un aviso visible; si la carga falla, se muestra el error y su causa sin pulsar nada.</td></tr>
+<tr><td>Escuchando</td><td><code>↵</code> o espacio: terminar · <code>p</code>: pausa · <code>esc</code>: terminar y descartar (deshacible)</td></tr>
+<tr><td>En pausa</td><td><code>p</code>: reanudar · <code>↵</code>: terminar · <code>esc</code>: terminar y descartar. El micrófono sigue abierto pero no se graba ni se transcribe.</td></tr>
+<tr><td>Revisión</td><td><code>↵</code> o <code>esc</code>: salir (el texto ya está copiado: <code>Cmd-V</code> para pegar; la pista solo lo dice si de verdad se copió) · <code>r</code>: grabar otra · <code>c</code>: añadir a esta grabación · <code>⌫</code>: descartar · <code>u</code>: deshacer el descarte · <code>s</code>: copiar (solo si la configuración no es <code>auto</code> ni se usó <code>--no-copy</code>)</td></tr>
+<tr><td>Sin voz</td><td><code>r</code>: intentar de nuevo · <code>↵</code> o <code>esc</code>: salir</td></tr>
+<tr><td>Sin audio del micrófono</td><td>El micrófono no se pudo abrir o solo entregó silencio digital: «✖ No llega audio del micrófono», la ruta de Ajustes y <code>↵</code> (o <code>r</code>): reintentar · <code>esc</code>: salir.</td></tr>
+<tr><td>Texto incompleto</td><td>Si algún tramo no se transcribió, la revisión muestra «⚠ Texto incompleto · N tramos sin transcribir · copiado» y el comando para transcribir el audio entero. Si fallaron todos, en lugar de «No se detectó voz»: «✖ No se pudo transcribir · el audio quedó guardado».</td></tr>
+<tr><td>Elegir (salir con 2 o más grabaciones válidas)</td><td><code>↵</code>: dejar copiada la última · <code>a</code>: copiar todas juntas · <code>esc</code>: salir sin cambiar el portapapeles</td></tr>
+</tbody></table>
+<ul>
+  <li>El espacio equivale a <code>↵</code> solo en «Listo» y «Escuchando».</li>
+  <li><code>Ctrl-C</code> es una salida segura en cualquier estado: termina la grabación en curso, la guarda y deja copiado el último texto válido (según <code>copiar</code>). Sale siempre con código 130, haya texto o no, y dice lo que pasó: «Interrumpido · texto copiado», «Interrumpido · audio guardado en <i>ruta</i>» o «Cancelado» (no había grabación); nunca promete un respaldo que falló.</li>
+  <li><code>Ctrl-\</code> vuelca la pila de todos los hilos a stderr. Es la herramienta para diagnosticar un congelamiento.</li>
+  <li>Pegar texto en la terminal (bracketed paste) se traga entero y no dispara teclas. Las flechas se ignoran.</li>
+</ul>
+
+<h2 id="h6">3.6 Tres formas de usar el micrófono</h2>
+<table>
+<thead><tr><th>Modo</th><th>Cuándo se usa</th><th>Cómo funciona</th></tr></thead>
+<tbody>
+<tr><td>Interfaz interactiva (<code>liveui</code>)</td><td>Por defecto, si stdin y stderr son una terminal y no pusiste <code>VOZ_UI=simple</code>.</td><td>Región redibujable en stderr, medidor de nivel, texto confirmado y provisional, teclas de la sección 3.5.</td></tr>
+<tr><td>Flujo simple en vivo (<code>live.record_live</code>)</td><td>Sin terminal interactiva (pipes, scripts) o con <code>VOZ_UI=simple</code>.</td><td>Pide <code>↵</code> para empezar y para terminar. El texto va saliendo por stdout. Al final pregunta «¿Copiar al portapapeles? [S/n]»; sin terminal copia sin preguntar. <code>-y</code> evita la pregunta.</td></tr>
+<tr><td><code>--no-live</code> (<code>record.record_push_to_talk</code>)</td><td>Si lo pides.</td><td>Graba todo, recorta el silencio, transcribe al final y emite una sola vez.</td></tr>
+</tbody></table>
+<p>Si stdout no es una terminal (por ejemplo <code>voz &gt; nota.txt</code>), la interfaz interactiva escribe en él, al salir, el texto elegido. En stdout nunca va nada más.</p>
+
+<h2 id="h7">3.7 Ejemplos</h2>
+<pre><code>voz                                 # dictar, ↵ empieza y ↵ termina
+voz --lang es --accurate            # español fijo, modelo grande
+voz --out ~/notas/hoy.md            # copia y además añade al archivo
+voz nota.m4a                        # transcribir un audio
+voz reunion.m4a --srt --json        # y escribir reunion.srt y reunion.json
+voz reunion.m4a --no-copy &gt; r.txt   # solo stdout, a un archivo
+VOZ_UI=simple voz -y                # flujo simple, copia sin preguntar
+voz doctor --mic                    # diagnóstico, con prueba de micrófono</code></pre>
+
+<h1 id="s4">4. Arquitectura</h1>
+<p>El código vive en <code>src/</code> como módulos planos. <code>bin/voz</code> lanza <code>src/voz.py</code>, que añade su carpeta al <code>sys.path</code>, por eso los módulos se importan entre sí por nombre (<code>import stt</code>). Los imports pesados (MLX, sounddevice, SciPy) son perezosos para que <code>--help</code> y <code>voz devices</code> arranquen al instante.</p>
+
+<div class="arch">
+  <div class="lane"><div class="lane-label">Interfaz</div>
+    <div class="row">
+      <div class="box"><b>voz.py</b><span>CLI · parser · modos · salida</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box"><b>liveui.py</b><span>Shell: micrófono, modelo, disco, portapapeles</span></div>
+      <div class="box"><b>flow.py</b><span>máquina de estados pura</span></div>
+      <div class="box"><b>ui.py</b><span>ANSI · teclas · medidor</span></div>
+    </div>
+  </div>
+  <div class="vlink"><b>&darr;</b> orquesta el pipeline</div>
+  <div class="lane"><div class="lane-label">Pipeline</div>
+    <div class="row">
+      <div class="box"><b>record.py</b><span>captura 16 kHz · umbral · recorte</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box"><b>live.py</b><span>Segmenter (pausas) · LiveSession (hilo)</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box"><b>stt.py</b><span>mlx-whisper · filtros · idioma</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box"><b>corrections.py</b><span>glosario, una pasada</span></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box"><b>output.py</b><span>stdout · portapapeles · srt · json</span></div>
+    </div>
+  </div>
+  <div class="vlink"><b>&darr;</b> en paralelo, sin bloquear el audio</div>
+  <div class="lane"><div class="lane-label">Soporte</div>
+    <div class="row">
+      <div class="box soft"><b>autosave.py</b><span>.wav + .txt a disco mientras hablas · recuperación</span></div>
+      <div class="box soft"><b>doctor.py</b><span>diagnóstico sin red</span></div>
+      <div class="box soft"><b>config.py</b><span>config.toml</span></div>
+    </div>
+  </div>
+  <div class="vlink"><b>&darr;</b> se apoya en</div>
+  <div class="lane"><div class="lane-label">Externo</div>
+    <div class="row">
+      <div class="box ext"><b>sounddevice</b><span>PortAudio · CoreAudio</span></div>
+      <div class="box ext"><b>mlx-whisper</b><span>modelo en caché de Hugging Face</span></div>
+      <div class="box ext"><b>ffmpeg</b><span>decodifica archivos</span></div>
+      <div class="box ext"><b>pbcopy / pbpaste</b><span>portapapeles de macOS</span></div>
+    </div>
+  </div>
+  <div class="legend">Línea continua: módulos de <code>voz</code>. Discontinua: dependencias externas. Los archivos de audio no pasan por <code>live</code>: <code>voz.py</code> llama directo a <code>stt</code>, que corta en frases con <code>record.split_on_silence</code>.</div>
+</div>
+
+<div class="card">
+<h2 id="m1">4.1 <code>voz.py</code> · CLI y orquestación</h2>
+<div class="k">Responsabilidad</div>
+<p>Punto de entrada. Define el parser, valida combinaciones, decide qué modo ejecutar y se encarga del cierre del proceso.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>build_parser</code>, <code>parse_args</code>: banderas y validaciones; resuelve el modelo (<code>--accurate</code> contra <code>--model</code>).</li>
+  <li><code>main</code>: reparte entre <code>devices</code>, <code>doctor</code>, archivo, <code>--loop</code> y micrófono. Carga el glosario y, en modos de micrófono, avisa de sesiones sin cerrar (<code>autosave.report_unfinished</code>).</li>
+  <li><code>cmd_mic</code>, <code>cmd_loop</code>, <code>cmd_file</code>: los tres caminos. <code>_live_ui</code> y <code>_live_once</code> son la interfaz interactiva y el flujo simple.</li>
+  <li><code>_interactive</code>: interfaz solo si stdin y stderr son terminal y <code>VOZ_UI</code> no es <code>simple</code>.</li>
+  <li>Al final, si <code>record.hard_exit_reasons()</code> no está vacío (el driver de audio no soltó el micrófono, el modelo seguía cargando), sale con <code>os._exit</code> tras avisar. El texto ya está escrito y copiado.</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/voz.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m2">4.2 <code>record.py</code> · captura y detección de voz</h2>
+<div class="k">Responsabilidad</div>
+<p>Abrir y cerrar el micrófono, y decidir qué es voz y qué es silencio.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>open_input</code>: <code>sounddevice.InputStream</code> mono, float32, a 16 kHz (<code>SAMPLE_RATE</code>), en el dispositivo de entrada por defecto del sistema. Cualquier fallo sube como <code>MicError</code>; con <code>refresh=True</code> (el reintento) PortAudio vuelve a listar los dispositivos.</li>
+  <li><code>stop_stream</code>: detiene el micrófono en un hilo con tope de 1,5 s. En macOS, parar un micrófono real puede bloquearse en CoreAudio (sección 6); si no suelta, se marca y <code>voz.py</code> sale con <code>os._exit</code>.</li>
+  <li><code>adaptive_threshold(levels, profile)</code>: <code>max(min_abs, min(p10 * floor_mult, p99 * peak_frac))</code>. Dos perfiles: <code>LIVE_PROFILE</code> (3e-3, 1,5, 0,08) y <code>TRIM_PROFILE</code> (1e-3, 3,0, 0,02).</li>
+  <li><code>voice_band_sos</code>: filtro Butterworth de 4º orden, banda de 100 a 4000 Hz, para medir energía.</li>
+  <li><code>trim_silence</code>: quita silencio de los extremos con ventanas de 20 ms y 300 ms de margen. <code>split_on_silence</code>: corta archivos en frases. <code>rms</code>.</li>
+  <li><code>record_push_to_talk</code>, <code>prompt</code> (escribe el prompt en stderr).</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/record.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m3">4.3 <code>live.py</code> · tramos en vivo</h2>
+<div class="k">Responsabilidad</div>
+<p>Cortar el flujo del micrófono en tramos de habla y transcribirlos mientras sigues hablando.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>Segmenter.feed / current / flush</code>: recibe bloques de cualquier tamaño y devuelve tramos terminados. Mide energía por cuadros de 30 ms sobre la banda de voz con un umbral adaptativo sobre los últimos 5 s. Cierra un tramo tras 700 ms de silencio (mínimo 0,6 s), o a los 12 s con corte suave en el cuadro más silencioso del último 1,5 s. Conserva 300 ms previos al primer cuadro con voz. Los tramos que emite son el audio original, no el filtrado.</li>
+  <li><code>LiveSession</code>: un único hilo trabajador es dueño del modelo. Carga el modelo (calentamiento) mientras el usuario pulsa la primera tecla, transcribe los tramos que llegan por una cola y, entre tramos, hace transcripciones parciales del tramo en curso (<code>PARTIAL_MIN_S</code> 0,8 s; espera audio nuevo equivalente a 1,2 veces lo que costó la anterior). Expone <code>submit</code>, <code>hold</code>/<code>release</code>, <code>drain</code> (esperar sin cerrar el hilo), <code>finish</code>, <code>committed</code>, <code>partial</code>, <code>failed_chunks</code>, <code>error</code>, <code>ready</code>.</li>
+  <li><code>record_live</code> y <code>decide_copy</code>: el flujo simple.</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/live.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m4">4.4 <code>stt.py</code> · transcripción y filtros</h2>
+<div class="k">Responsabilidad</div>
+<p>Envolver mlx-whisper, elegir el idioma y limpiar lo que Whisper alucina.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>transcribe_segments(audio, *, model, language, initial_prompt, condition_on_previous_text, dictation, lang_state)</code> devuelve <code>[{start, end, text}]</code>. <code>audio</code> es una ruta o un arreglo float32 mono a 16 kHz. Con <code>dictation=True</code> endurece el umbral de no-voz (0,45) y recorta la escalera de temperaturas a (0,0, 0,2). Si falta el modelo en caché, o está incompleto, lo descarga una vez con <code>download_model</code>.</li>
+  <li><code>model_status(model)</code>: «ready» (configuración y pesos en la caché), «incomplete» (descarga interrumpida) o «missing», sin red. <code>download_model</code> baja el snapshot con <code>huggingface_hub.snapshot_download</code> y cuenta los bytes en <code>download</code> (<code>DownloadProgress</code>), que lee la interfaz; <code>format_size</code> da «420 MB», «1,6 GB».</li>
+  <li><code>transcribe</code>: lo mismo, unido en un texto.</li>
+  <li><code>_filter_segments</code>: descarta segmentos de baja confianza y sin voz, frases basura conocidas (<code>JUNK_PHRASES</code>: «gracias», «thank you», «amara.org»...) cuando el segmento entero es una de ellas y parece silencio o no-voz, y bucles de repetición.</li>
+  <li><code>_collapse_repeats</code>, <code>_collapse_word_runs</code>: colapsan la misma frase repetida 3 o más veces seguidas, y n-gramas de hasta 10 palabras (una palabra sola, 4 veces). Los dígitos y las letras sueltas se dictan literalmente y no se tocan.</li>
+  <li><code>detect_language_probs</code>: probabilidades del detector para español e inglés (<code>AUTO_LANGUAGES</code>). <code>LangState</code>: el idioma pegajoso de una sesión en vivo; <code>choose</code> es pura y <code>current</code> solo lo fijan los tramos confirmados con texto (ni los parciales, ni un error, ni un tramo filtrado a vacío lo mueven). <code>default_primary</code> resuelve el idioma principal una vez por proceso (<code>config.primary_language</code>). <code>detect_languages</code> (en lotes de 8): detecta por frase en archivos.</li>
+  <li><code>transcribe_file_segments</code>: para archivos en <code>auto</code>. Corta en frases (pausas desde 0,7 s), detecta el idioma de cada una, reúne frases contiguas del mismo idioma (hasta 25 s), transcribe y reajusta los tiempos a la línea de tiempo del archivo.</li>
+  <li><code>last_language</code>: idioma de la última transcripción, para la interfaz.</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/stt.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m5">4.5 <code>corrections.py</code> · glosario</h2>
+<div class="k">Responsabilidad</div>
+<p>Corregir nombres propios y términos técnicos que Whisper oye mal, sin red y sin tocar el modelo.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>load(path)</code>: lee <code>[replacements]</code> de <code>corrections.toml</code>. Ordena las claves de la más larga a la más corta, ignora claves de menos de 3 caracteres y reglas que solo cambian mayúsculas. Un archivo ilegible avisa y sigue sin correcciones: nunca rompe una transcripción. Cada clave se compila con límites de palabra Unicode, sin distinguir mayúsculas.</li>
+  <li><code>apply(text, rules)</code>: una sola pasada con un patrón combinado, de modo que la salida de una regla nunca dispara otra. El valor se escribe literal.</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/corrections.py</code> · ejemplo en <code>config/corrections.example.toml</code></p>
+</div>
+
+<div class="card">
+<h2 id="m6">4.6 <code>output.py</code> · salida</h2>
+<div class="k">Responsabilidad</div>
+<p>Entregar el texto: stdout, portapapeles, archivo y subtítulos.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>emit</code>: imprime el texto en stdout (lo único que va ahí), copia y añade a <code>--out</code>. Los fallos de copia o de escritura se avisan por stderr sin perder el texto.</li>
+  <li><code>to_clipboard</code>, <code>from_clipboard</code>: <code>pbcopy</code> y <code>pbpaste</code> en UTF-8.</li>
+  <li><code>to_srt</code>, <code>to_json</code>, <code>write_sidecar</code>, <code>unique_path</code>: escriben junto al audio y nunca sobrescriben (<code>-1</code>, <code>-2</code>...).</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/output.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m7">4.7 <code>autosave.py</code> · grabación a salvo</h2>
+<div class="k">Responsabilidad</div>
+<p>Que un congelamiento, un <code>kill</code> o un corte de luz no pierdan lo dicho.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>Session</code>: por cada grabación escribe <code>sesion-AAAAMMDD-HHMMSS-gN.wav</code> (16 kHz, mono, PCM de 16 bits), el <code>.txt</code> con una línea por tramo confirmado y un <code>.lock</code> con un <code>flock</code> mientras esté abierta. El nombre se reserva de forma atómica (el <code>.lock</code> y el <code>.wav</code> se crean con <code>O_EXCL</code>): si dos <code>voz</code> arrancan a la vez, o el bloqueo falla, la sesión toma el siguiente sufijo (<code>-2</code>, <code>-3</code>…) en vez de escribir sobre archivos ajenos. La carpeta queda en <code>0700</code> y los archivos en <code>0600</code>, sin importar el <code>umask</code>. El callback de audio solo encola; un hilo escritor hace el I/O para que el disco nunca haga perder muestras. Los errores de audio (<code>audio_failed</code>) y de texto (<code>text_failed</code>) van por separado: un fallo del <code>.txt</code> no detiene el respaldo del WAV, ni al revés, y el aviso se conserva hasta el cierre. El <code>.lock</code> se borra solo si el hilo escritor terminó bien y nada falló; si no, queda para que el siguiente arranque ofrezca la sesión. Si no se pueden restringir los permisos (<code>chmod</code>), avisa una vez. Reescribe el encabezado WAV cada segundo, así un cierre brusco deja un <code>.wav</code> válido.</li>
+  <li><code>new_run_id</code>: identificador único por ejecución, incluso si dos arrancan en el mismo segundo.</li>
+  <li><code>prune</code>: conserva las últimas 5 ejecuciones completas y nunca toca la actual ni una con grabación abierta.</li>
+  <li><code>unfinished</code>, <code>report_unfinished</code>: en el siguiente arranque detectan <code>.lock</code> huérfanos (el SO suelta el <code>flock</code> al morir el proceso) e imprimen la ruta y el comando para re-transcribir.</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/autosave.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m8">4.8 <code>liveui.py</code> · el Shell de la interfaz</h2>
+<div class="k">Responsabilidad</div>
+<p>Ejecutar lo que <code>flow.py</code> decide: abrir el micrófono, manejar el modelo, escribir a disco, copiar y dibujar.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>run</code> → <code>Shell.run</code>: bucle de dibujo y lectura de teclas cada 80 ms.</li>
+  <li><code>Audio</code>: el micrófono se abre una sola vez (con la primera pulsación) y se cierra al salir. Una compuerta (<code>gate</code>) descarta el audio mientras estás en pausa o en revisión. Cada grabación tiene su propio trío <code>Segmenter</code>, <code>LiveSession</code> y <code>autosave.Session</code>.</li>
+  <li><code>Shell.perform</code>: traduce cada acción (<code>START</code>, <code>PAUSE</code>, <code>FINISH</code>, <code>DISCARD</code>, <code>UNDO</code>, <code>COPY</code>, <code>EXIT</code>) en efectos. Al descartar, devuelve al portapapeles la grabación válida anterior o lo que tenías antes de abrir <code>voz</code>.</li>
+  <li><code>summary_line</code>, <code>lines</code>: textos de cada estado, con versión compacta por debajo de 80 columnas. <code>_status</code> pasa las teclas a una segunda línea si no caben; <code>_hint</code> reparte las teclas en las líneas necesarias sin cortarlas.</li>
+  <li><code>_open_mic</code>: si el micrófono no abre, la grabación termina en la pantalla «No llega audio del micrófono» (<code>flow.mic_failed</code>); el silencio digital total llega al mismo sitio.</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/liveui.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m9">4.9 <code>flow.py</code> · máquina de estados</h2>
+<div class="k">Responsabilidad</div>
+<p>Toda la lógica de teclas, sin tocar micrófono, modelo ni terminal. Por eso cada transición tiene prueba unitaria.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>step(flow, key)</code> devuelve la acción (<code>Act</code>) que el Shell debe ejecutar; las teclas desconocidas son <code>NOOP</code>. Estados: <code>READY</code>, <code>LISTEN</code>, <code>PAUSED</code>, <code>FINISHING</code>, <code>REVIEW</code>, <code>NOVOICE</code>, <code>CHOOSE</code>, <code>DONE</code>.</li>
+  <li><code>norm</code> (tecla cruda a tecla lógica), <code>finished</code> (el Shell informa el resultado de una grabación), <code>mic_failed</code> (el micrófono no abrió: la grabación queda sin audio y <code>↵</code> reintenta), <code>joined</code> (une las válidas con una línea en blanco).</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/flow.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m10">4.10 <code>ui.py</code> · terminal</h2>
+<div class="k">Responsabilidad</div>
+<p>Dibujar y leer teclas con la biblioteca estándar. Respeta <code>NO_COLOR</code>.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>Region</code>: bloque de líneas en stderr que se redibuja en su sitio; si la ventana cambia de tamaño, abre una región nueva en lugar de corromper la pantalla.</li>
+  <li><code>Keys</code>: lector en modo <code>cbreak</code> que devuelve una tecla lógica por llamada; traga el pegado entre corchetes, descarta flechas y separa un <code>esc</code> suelto de una secuencia.</li>
+  <li><code>meter</code> (barras sobre una escala de -60 a -10 dBFS; el medidor de la interfaz muestra puntos tenues en silencio y barras de color cuando detecta voz), <code>wrap_transcript</code> (confirmado en el color por defecto de la terminal, provisional en tono tenue (atributo «dim»), legibles con fondo claro y oscuro; solo ajusta la cola), <code>fit</code> (recorta a las columnas visibles), <code>status_line</code>.</li>
+</ul>
+<div class="k">Archivo</div><p><code>src/ui.py</code></p>
+</div>
+
+<div class="card">
+<h2 id="m11">4.11 <code>doctor.py</code> y <code>config.py</code></h2>
+<div class="k">Responsabilidad</div>
+<p><code>doctor</code>: diagnóstico sin red. <code>config</code>: preferencias del usuario.</p>
+<div class="k">Funciones clave</div>
+<ul>
+  <li><code>doctor.run(mic)</code>: comprueba versión de Python, imports de <code>mlx_whisper</code>, <code>sounddevice</code> y <code>numpy</code>, el estado de los dos modelos (<code>stt.model_status</code>: disponible, incompleto si faltan los archivos de pesos, o ausente), <code>ffmpeg</code>, el micrófono por defecto, el número de reglas del glosario y si <code>voz</code> está en el PATH. Los problemas críticos (imports, micrófono) devuelven código 1; la falta de ffmpeg, un modelo ausente o incompleto y el resto son advertencias (<code>⚠</code>). Símbolos unificados: <code>✓</code> éxito, <code>✖</code> error, <code>⚠</code> advertencia, <code>●</code> estado, <code>·</code> separador. <code>_check_mic</code> graba 1 s y mide el RMS.</li>
+  <li><code>config.load()</code>: lee <code>config.toml</code>; un archivo ilegible (TOML roto o que no es UTF-8), un tipo incorrecto (por ejemplo <code>portapapeles = 1</code>) o un valor desconocido caen al default y avisan por stderr, sin traceback. Existen <code>[portapapeles] copiar</code> e <code>[idioma] principal</code> (<code>config.primary_language</code> resuelve el principal: config; <code>LC_ALL</code>/<code>LANG</code> si dicen <code>es_*</code>; la región de <code>AppleLocale</code>; español).</li>
+</ul>
+<div class="k">Archivos</div><p><code>src/doctor.py</code>, <code>src/config.py</code></p>
+</div>
+
+<h1 id="s5">5. Flujo de datos de un dictado</h1>
+<p>Recorrido de una sesión interactiva típica, desde que escribes <code>voz</code> hasta el <code>Cmd-V</code>.</p>
+<ol class="steps">
+  <li><b>Arranque.</b> <code>bin/voz</code> fija el entorno y lanza <code>voz.py</code>. <code>main</code> carga el glosario, avisa de sesiones sin cerrar y entra a <code>_live_ui</code>.</li>
+  <li><b>Calentamiento.</b> <code>Shell</code> crea la primera <code>LiveSession</code>. Su hilo carga el modelo transcribiendo 0,5 s de silencio (en español si el idioma es <code>auto</code>, porque detectar sobre silencio alucinaba «Thank you.») mientras la pantalla muestra «Cargando modelo…» con su contador y luego «Listo».</li>
+  <li><b>Empezar.</b> Pulsas <code>↵</code>. <code>flow.step</code> devuelve <code>START</code>; el Shell espera a que el modelo esté listo, abre el micrófono (una vez) y activa la compuerta.</li>
+  <li><b>Captura.</b> PortAudio entrega bloques float32 a 16 kHz. <code>Audio.feed</code> escribe el bloque a disco (<code>autosave</code>, solo encola) y se lo pasa al <code>Segmenter</code>.</li>
+  <li><b>Corte por pausas.</b> El <code>Segmenter</code> mide la energía en la banda de voz y cierra un tramo tras 700 ms de silencio o a los 12 s. Cada tramo entra a la cola de la <code>LiveSession</code>.</li>
+  <li><b>Transcripción.</b> El hilo trabajador toma el tramo y llama a <code>stt.transcribe</code>: idioma pegajoso (<code>LangState</code>) si es <code>auto</code>, mlx-whisper, y <code>_filter_segments</code> contra alucinaciones.</li>
+  <li><b>Glosario y confirmación.</b> <code>corrections.apply</code> corrige el texto; el tramo pasa a <code>parts</code> (confirmado) y se anota en el <code>.txt</code> de la sesión.</li>
+  <li><b>Texto provisional.</b> Entre tramos, el hilo transcribe lo que lleva el tramo en curso (<code>Segmenter.current</code>) y lo muestra en gris. Se reemplaza cuando llega la versión confirmada.</li>
+  <li><b>Terminar.</b> Pulsas <code>↵</code>. El Shell cierra la compuerta, envía lo que quede (<code>Segmenter.flush</code>), espera a que se transcriba todo (<code>drain</code>, con un plazo de 20 s) y el estado pasa a «Terminando…» con un contador de segundos y los tramos pendientes.</li>
+  <li><b>Entrega.</b> <code>flow.finished</code> pasa a «Revisión». El texto se imprime en el historial de la terminal (stderr), se copia con <code>pbcopy</code> (si el modo es <code>auto</code>) y se muestra el resumen: duración, palabras e idioma.</li>
+  <li><b>Salida.</b> Con <code>↵</code> el micrófono se cierra con <code>stop_stream</code>, el autosave se cierra limpio (quita el <code>.lock</code>) y se podan las sesiones antiguas. Si stdout no es una terminal, el texto elegido se escribe ahí.</li>
+</ol>
+
+<h2>Transcribir un archivo</h2>
+<p>Es un camino más corto, sin <code>record</code> ni <code>live</code>. Con <code>--lang</code> fijo, <code>voz.py</code> llama a <code>transcribe_segments(ruta, dictation=False)</code>; mlx-whisper decodifica con ffmpeg. Con <code>auto</code>, <code>transcribe_file_segments</code> corta en frases, detecta el idioma de cada una por lotes y transcribe grupos contiguos del mismo idioma. En ambos casos: glosario por segmento, texto a stdout, portapapeles y <code>--out</code> primero, y solo después el <code>.srt</code> y el <code>.json</code>. Así, una carpeta de solo lectura o una ruta mala cuestan el archivo auxiliar y nunca la transcripción.</p>
+
+<h1 id="s6">6. Decisiones de diseño y por qué</h1>
+<p>Estas decisiones están cerradas. Cada una nació de una medición o de un fallo reproducido; si quieres reabrir una, trae un dato nuevo. Las medidas son del autor, con voz sintética del comando <code>say</code> de macOS y en un solo equipo: úsalas como orden de magnitud, no como garantía.</p>
+
+<table>
+<thead><tr><th>Decisión</th><th>Valor</th><th>Por qué (dato)</th></tr></thead>
+<tbody>
+<tr><td>Modelo por defecto</td><td><code>whisper-large-v3-turbo</code></td><td>Unas 5 veces más rápido que large-v3, con un WER unos 0,4 puntos porcentuales peor. Para reuniones importantes está <code>--accurate</code>.</td></tr>
+<tr><td><code>initial_prompt</code></td><td>Siempre apagado (<code>None</code>)</td><td>Un prompt con vocabulario se repite textualmente sobre silencio o clips cortos (eco del prompt). Encadenar contexto entre tramos también empeoró los resultados. Los nombres propios se arreglan con el glosario.</td></tr>
+<tr><td>Frecuencia de muestreo</td><td>16 kHz mono</td><td>Whisper trabaja a 16 kHz y CoreAudio remuestrea de forma transparente. Grabar a 48 kHz solo triplicaría los datos.</td></tr>
+<tr><td>Idioma</td><td><code>auto</code> restringido a es/en</td><td>Sin restringir, los tramos cortos se detectaban como portugués o gallego.</td></tr>
+<tr><td>Idioma en vivo</td><td>Pegajoso, con sesgo al idioma principal</td><td>El detector por tramo se voltea al inglés con audio lejano o de varias voces y Whisper inventa frases. Se cambia de idioma con 0,80 de probabilidad o 0,50 de ventaja; volver al principal pide 0,60 o 0,25 (se corrige un cambio falso en un tramo). El primer tramo siembra el principal salvo que el otro idioma sea claro, y los parciales antes del primer tramo usan el principal.</td></tr>
+<tr><td>Idioma en archivos</td><td>Detección por frase, en lotes de 8, uniendo frases contiguas del mismo idioma (hasta 25 s)</td><td>Whisper detecta una sola vez con los primeros 30 s: en un archivo mixto salía en inglés 1 de 4 frases; con la detección por frase, 4 de 4.</td></tr>
+<tr><td>Calentamiento</td><td>Idioma fijo <code>es</code></td><td>En <code>auto</code>, sobre silencio, alucinaba «Thank you.»</td></tr>
+<tr><td>Tramo máximo en vivo</td><td>12 s con corte suave</td><td>Con 25 s cada parcial costaba hasta unos 1,2 s y el hilo trabajador no paraba de re-transcribir.</td></tr>
+<tr><td><code>word_timestamps</code>, <code>fp16=False</code></td><td>No se usan</td><td>Añadían 145 % y 95 % de latencia sin mejorar el WER.</td></tr>
+<tr><td>Normalizar números</td><td>No</td><td>Whisper ya convierte «tres» en 3 y «cuarenta y cinco mil» en 45.000.</td></tr>
+<tr><td>Medir energía</td><td>Banda de 100 a 4000 Hz (IIR con estado); Whisper recibe el audio original</td><td>Subió los aciertos del detector con 20 dB de relación señal-ruido de 0 de 9 a 6 de 9.</td></tr>
+<tr><td>Umbral de voz</td><td>Dos perfiles: en vivo (3e-3, 1,5, 0,08) y recorte (1e-3, 3,0, 0,02)</td><td>En vivo, un umbral bajo une todo en un tramo y corta a mitad de frase: debe resistir el ruido. En el recorte, equivocarse deja el audio sin recortar, que es el fallo seguro y protege las voces suaves.</td></tr>
+<tr><td>«gracias» aislado</td><td>Se descarta solo si el audio en memoria es silencio (RMS menor que 0,01)</td><td>Un «gracias» real y uno alucinado tienen la misma huella de confianza; solo la energía de entrada los separa.</td></tr>
+<tr><td>Filtro de compresión</td><td>Un segmento con razón de compresión mayor que 2,4 solo se descarta si además parece no ser voz</td><td>En mlx esa razón se calcula por ventana de 30 s, no por segmento: descartar por ella sola borraba dictado real. Los bucles se limpian con el colapso de repeticiones.</td></tr>
+<tr><td>Parar el micrófono</td><td>En un hilo con tope de 1,5 s</td><td>Parar un micrófono real puede bloquear a PortAudio y CoreAudio entre sí (mutex cruzado). Con audio simulado nunca pasa. Con el tope, el texto sale igual y el proceso termina con <code>os._exit</code>. Verificado con un micrófono real: cierra en unos 4 s.</td></tr>
+<tr><td>Caché de MLX</td><td>Se libera solo al pasar 1 GB</td><td>Un archivo de 60 min llegaba a 3,05 GB de pico; liberando al pasar el límite, 1,2 GB. Liberar en cada grupo bajaba a 1,35 GB pero tardaba 5 veces más (42,9 min contra 7,6 min).</td></tr>
+<tr><td>Reintento de descarga</td><td>Solo ante «no está en caché» (<code>LocalEntryNotFoundError</code> en la cadena de causas) o un modelo incompleto (config sin pesos)</td><td>Antes atrapaba cualquier error y mentía sobre la causa. La descarga corre en el hilo del modelo y la interfaz lee su avance, así no hay texto suelto que choque con el redibujado.</td></tr>
+<tr><td>stdout</td><td>Solo la transcripción; la interfaz y los avisos a stderr</td><td>Que <code>voz | pbcopy</code> y las redirecciones salgan limpios.</td></tr>
+<tr><td>Interfaz</td><td>Solo con stdin y stderr en una terminal</td><td>Pipes y scripts reciben el flujo simple. <code>VOZ_UI=simple</code> es la salida de emergencia.</td></tr>
+<tr><td>Sin dependencias de UI</td><td>ANSI y <code>termios</code></td><td>Una dependencia menos que mantener y que auditar.</td></tr>
+<tr><td>Glosario</td><td>Solo nombres propios, mínimo 3 letras, una pasada, valores literales</td><td>Las palabras comunes dan falsos positivos. La pasada única evita que una regla dispare otra, y los valores literales dejan escribir rutas como <code>C:\dev</code>.</td></tr>
+</tbody></table>
+
+<h2>Medidas de referencia</h2>
+<table>
+<thead><tr><th>Qué</th><th>Valor</th></tr></thead>
+<tbody>
+<tr><td>Latencia de un tramo con el modelo caliente</td><td>0,86 s en promedio (0,74 a 1,07 s). Con <code>auto</code>, unos 0,9 s más.</td></tr>
+<tr><td>Carga inicial del modelo</td><td>Unos 4,75 s.</td></tr>
+<tr><td>Primer texto provisional</td><td>2,4 s después de empezar a hablar (frase de 8 s sin pausas).</td></tr>
+<tr><td>Archivo de 54 s en frío</td><td>7,9 s (unas 7 veces tiempo real), unos 790 MB de RAM. Modelo en disco: 1,5 GB.</td></tr>
+<tr><td>Archivos largos</td><td>30 min en 3,9 min; 60 min en 7,6 min con 1,2 GB de pico.</td></tr>
+<tr><td>Motor en vivo, 30 min a velocidad doble</td><td>0 pausas de más de 1 s en la interfaz, 4.604 palabras, RAM estable en 494 MB.</td></tr>
+<tr><td>WER con voz sintética</td><td>Cerca de 12,6 % (sin contar números ni «gracias»).</td></tr>
+<tr><td>Aciertos del detector de pausas según el ruido (casos con el número correcto de tramos)</td><td>Limpio 3/3 · 30 dB 4/9 · 20 dB 6/9 · 10 dB 1/9 · 5 dB 0/9, con unos 110 µs de CPU por cuadro de 30 ms. Es el límite honesto: por debajo de unos 10 dB haría falta un detector entrenado.</td></tr>
+</tbody></table>
+
+<h1 id="s7">7. Configuración</h1>
+
+<h2 id="h8">7.1 Archivos y carpetas</h2>
+<table>
+<thead><tr><th>Ruta</th><th>Qué es</th><th>Sobrescribible con</th></tr></thead>
+<tbody>
+<tr><td><code>~/.config/voz/config.toml</code></td><td>Preferencias: modo de copia e idioma principal.</td><td><code>VOZ_CONFIG</code></td></tr>
+<tr><td><code>~/.config/voz/corrections.toml</code></td><td>Glosario de correcciones.</td><td>(ninguna)</td></tr>
+<tr><td><code>~/.local/state/voz/</code></td><td>Grabaciones a salvo: <code>sesion-AAAAMMDD-HHMMSS-gN.wav</code>, <code>.txt</code> y <code>.lock</code>. Se conservan las últimas 5 ejecuciones. Solo tu usuario puede leerlas (carpeta <code>0700</code>, archivos <code>0600</code>).</td><td><code>VOZ_STATE_DIR</code></td></tr>
+<tr><td><code>~/.cache/huggingface/</code></td><td>Modelos descargados.</td><td>variables de Hugging Face</td></tr>
+</tbody></table>
+<p>Una hora de audio ocupa unos 115 MB. En el <code>.txt</code> de cada grabación se anotan las marcas <code>[descartada]</code> y <code>[restaurada]</code> cuando usas <code>⌫</code> y <code>u</code>.</p>
+
+<h2 id="h9">7.2 <code>config.toml</code></h2>
+<pre><code>[portapapeles]
+copiar = "auto"        # auto (default) | preguntar | nunca</code></pre>
+<ul>
+  <li><code>auto</code>: cada grabación se copia al terminar.</li>
+  <li><code>preguntar</code> y <code>nunca</code>: no se copia sola y en la revisión aparece la tecla <code>s</code>. Hoy la interfaz los trata igual. Salir con «dejar la última» o «copiar todas» desde la pantalla de elegir sí copia.</li>
+  <li><code>--no-copy</code> gana siempre sobre este valor (y quita la tecla <code>s</code>). Un valor desconocido se trata como <code>auto</code>; un archivo ilegible avisa y usa los valores por defecto.</li>
+</ul>
+<pre><code>[idioma]
+principal = "es"       # es | en</code></pre>
+<ul>
+  <li>Idioma al que se inclina <code>--lang auto</code> (primer tramo, volver a él con menos evidencia, parciales antes del primer tramo). Orden: este valor; si falta, <code>LC_ALL</code>/<code>LANG</code> solo si dicen <code>es_*</code> (un <code>en_US</code> heredado de la terminal no prueba nada); luego <code>defaults read -g AppleLocale</code> con un plazo corto: una región hispanohablante (AR BO CL CO CR CU DO EC ES GT GQ HN MX NI PA PE PR PY SV UY VE; EE. UU. no) da español aunque el locale sea <code>en_CO</code>, y si no, el idioma del propio locale si es <code>es</code> o <code>en</code>; después el <code>en</code> de <code>LANG</code> si lo hubo; si no, español. Un valor inválido avisa y pasa al idioma del sistema.</li>
+</ul>
+
+<h2 id="h10">7.3 <code>corrections.toml</code></h2>
+<pre><code>[replacements]
+"supa base" = "Supabase"      # clave: lo que Whisper escribe · valor: lo que querías
+"cloud code" = "Claude Code"</code></pre>
+<ul>
+  <li>Las claves no distinguen mayúsculas, pero sí tildes (hoy no se pliegan).</li>
+  <li>Las claves se ordenan de la más larga a la más corta: gana la regla de varias palabras.</li>
+  <li>Claves de menos de 3 caracteres se ignoran con un aviso. Una regla que solo cambia mayúsculas (<code>"nit" = "NIT"</code>) es válida: normaliza cualquier variante de la palabra.</li>
+  <li>En el modo en vivo se aplica por tramo; una regla de varias palabras partida por una pausa no se aplica. En archivos, por segmento.</li>
+  <li>Reglas: solo nombres propios y términos técnicos. Nunca palabras comunes ni claves que existan en otro idioma (un <code>cloud</code> a <code>Claude</code> dañaría una frase en inglés).</li>
+</ul>
+
+<h2 id="h11">7.4 Variables de entorno</h2>
+<table>
+<thead><tr><th>Variable</th><th>Quién la fija</th><th>Efecto</th></tr></thead>
+<tbody>
+<tr><td><code>HF_HUB_OFFLINE=1</code></td><td><code>bin/voz</code></td><td>El modelo se resuelve solo desde la caché local. Si falta o está incompleto, <code>stt.download_model</code> pasa a <code>0</code> solo mientras descarga el snapshot (con el progreso en la interfaz), vuelve a <code>1</code> y sigue.</td></tr>
+<tr><td><code>HF_HUB_DISABLE_PROGRESS_BARS=1</code></td><td><code>bin/voz</code></td><td>Sin barras de descarga de Hugging Face; el progreso lo dibuja la interfaz de <code>voz</code>.</td></tr>
+<tr><td><code>HF_HUB_DISABLE_TELEMETRY=1</code></td><td><code>bin/voz</code></td><td>Sin telemetría de Hugging Face.</td></tr>
+<tr><td><code>TOKENIZERS_PARALLELISM=false</code></td><td><code>bin/voz</code></td><td>Silencia un aviso de los tokenizadores.</td></tr>
+<tr><td><code>VOZ_UI=simple</code></td><td>tú</td><td>Fuerza el flujo simple en vez de la interfaz interactiva.</td></tr>
+<tr><td><code>NO_COLOR</code></td><td>tú</td><td>Quita los colores; el texto provisional se marca con ‹ ›.</td></tr>
+<tr><td><code>VOZ_CONFIG</code></td><td>tú</td><td>Otra ruta para <code>config.toml</code>.</td></tr>
+<tr><td><code>VOZ_STATE_DIR</code></td><td>tú</td><td>Otra carpeta para las grabaciones a salvo (útil en pruebas).</td></tr>
+</tbody></table>
+
+<h2 id="h12">7.5 Recuperar una sesión</h2>
+<p>Si <code>voz</code> murió sin cerrar bien, el siguiente arranque en modo micrófono imprime algo como la ruta del <code>.wav</code>, la del <code>.txt</code> y el comando <code>voz "&lt;ruta&gt;.wav"</code> para re-transcribirlo completo. Se avisa una sola vez por sesión.</p>
+
+<h1 id="s8">8. Tests y benchmarks</h1>
+
+<h2 id="h13">8.1 Tests</h2>
+<pre><code>./.venv/bin/python -m pip install -r requirements.lock.txt -r requirements-dev.txt
+./.venv/bin/python -m pytest -q                  # unitarios: 229 tests, sin modelo ni micrófono
+./.venv/bin/python -m pytest -q -m integration   # 3 E2E con el modelo real en caché</code></pre>
+<p><code>pyproject.toml</code> excluye por defecto el marcador <code>integration</code>. Los de integración usan <code>say</code> para generar voz y se saltan solos si el modelo no está en caché.</p>
+<table>
+<thead><tr><th>Archivo</th><th>Qué cubre</th></tr></thead>
+<tbody>
+<tr><td><code>test_cli.py</code></td><td>El parser y sus validaciones.</td></tr>
+<tr><td><code>test_flow.py</code></td><td>Cada transición de la máquina de estados.</td></tr>
+<tr><td><code>test_live.py</code></td><td><code>Segmenter</code> y <code>LiveSession</code>.</td></tr>
+<tr><td><code>test_record.py</code></td><td>Recorte de silencio y umbrales.</td></tr>
+<tr><td><code>test_stt_clean.py</code></td><td>Filtros de alucinación y colapso de repeticiones.</td></tr>
+<tr><td><code>test_corrections.py</code></td><td>Carga y aplicación del glosario.</td></tr>
+<tr><td><code>test_output.py</code>, <code>test_autosave.py</code></td><td>Subtítulos, JSON, no sobrescribir; escritura a disco, bloqueos y poda.</td></tr>
+<tr><td><code>test_ui.py</code></td><td>Teclas, medidor, ajuste de texto, modos de copia.</td></tr>
+<tr><td><code>test_concurrency.py</code></td><td>Regresiones de concurrencia: <code>drain</code>, calentamiento, escritor de autosave, parada del micrófono.</td></tr>
+<tr><td><code>test_keys_clipboard.py</code></td><td>Teclas, portapapeles y códigos de salida del Shell interactivo, y los avisos mientras carga el modelo.</td></tr>
+<tr><td><code>test_stt_glossary.py</code></td><td>Limpieza de STT (alucinaciones, repeticiones), glosario y manejo de datos.</td></tr>
+<tr><td><code>test_regressions.py</code></td><td>Regresiones de los fallos principales: carga del modelo, tramos que fallan, archivos y códigos de salida.</td></tr>
+<tr><td><code>test_config.py</code></td><td>Configuración robusta: tipos incorrectos y archivos que no son UTF-8; idioma principal (config, <code>LANG</code>, región de <code>AppleLocale</code>, español).</td></tr>
+<tr><td><code>test_model_download.py</code></td><td>Estado del modelo (ausente, incompleto, disponible), descarga con progreso simulado y cómo la dibuja la interfaz.</td></tr>
+<tr><td><code>test_shell_states.py</code></td><td>Terminal estrecha (40, 59 y 80 columnas), micrófono denegado o mudo, textos de revisión y de <code>Ctrl-C</code>, transcripción incompleta.</td></tr>
+<tr><td><code>test_doctor.py</code></td><td><code>voz doctor</code>: advertencias frente a problemas críticos, estado de los modelos y símbolos.</td></tr>
+<tr><td><code>test_sticky_lang.py</code></td><td>Idioma pegajoso (<code>LangState</code>): sesgo al principal, fronteras exactas, recuperación de un cambio falso, y que errores, tramos filtrados y parciales no muevan el idioma.</td></tr>
+<tr><td><code>test_integration.py</code></td><td>E2E con el modelo real (marcador <code>integration</code>).</td></tr>
+</tbody></table>
+<p>Cuando arregles un bug, escribe primero el test que falla. Es la regla del proyecto (ver <code>CONTRIBUTING.md</code>).</p>
+
+<h2 id="h14">8.2 Benchmarks</h2>
+<p>La carpeta <code>bench/</code> tiene scripts, pero <b>no incluye audios</b>: son grabaciones tuyas o sintéticas que debes generar. Todos dependen del modelo o de <code>say</code> y <code>ffmpeg</code> de macOS.</p>
+<table>
+<thead><tr><th>Script</th><th>Para qué</th><th>Necesita</th></tr></thead>
+<tbody>
+<tr><td><code>bench/bench_src.py</code></td><td>Banco de ruido del detector de pausas: mezcla tus 3 frases con ruido blanco, rosa y de calle a 30, 20, 10 y 5 dB, y cuenta cuántas veces el <code>Segmenter</code> real acierta el número de tramos.</td><td><code>bench/audio/f1.wav</code>, <code>f2.wav</code>, <code>f3.wav</code></td></tr>
+<tr><td><code>bench/long/make_long.py</code></td><td>Genera audios largos (1, 3 y 5 min; con argumentos, 10, 30 y 60) mezclando órdenes en español, dictado técnico e inglés.</td><td><code>say</code>, <code>ffmpeg</code></td></tr>
+<tr><td><code>bench/long/stress_live.py</code></td><td>Alimenta el motor en vivo (modelo real) con un audio largo a ritmo real mientras mide el retraso de una interfaz simulada.</td><td>modelo en caché</td></tr>
+<tr><td><code>bench/long/pty_ui.py</code></td><td>Maneja la interfaz real en una pseudo-terminal y detecta congelamientos (el cronómetro deja de avanzar).</td><td><code>voz</code> instalado en <code>~/.local/bin</code></td></tr>
+<tr><td><code>bench/ux/pty_flows.py</code></td><td>Verificaciones de extremo a extremo de los flujos de teclas con audio simulado y un <code>pbcopy</code> falso.</td><td><code>voz</code> instalado y <code>bench/long/long1_pausas.wav</code></td></tr>
+</tbody></table>
+
+<h2 id="h15">8.3 Grabar tus 3 frases para <code>bench_src.py</code></h2>
+<p>El script carga <code>audio/f1.wav</code>, <code>f2.wav</code> y <code>f3.wav</code> desde <code>bench/audio/</code> y se corre desde <code>bench/</code>. Cada frase debe ser una oración de unos 5 a 10 segundos con una o dos pausas largas (más de 0,7 s) en medio, en WAV de 16 kHz mono.</p>
+<p>Las etiquetas de «dónde hay voz» se calculan con un umbral absoluto de -45 dBFS, pensado para un silencio digital limpio. Por eso conviene <b>voz sintética</b> (el silencio de <code>say</code> es silencio digital). Una grabación real con ruido de sala por encima de ese nivel se marcaría toda como voz y el banco no tendría sentido.</p>
+<pre><code>mkdir -p bench/audio
+say -v Paulina -o "$TMPDIR/f1.aiff" "Necesito dos galones de salsa rosada. [[slnc 1200]] El pago es mañana."
+say -v Paulina -o "$TMPDIR/f2.aiff" "Revisa que el pedido quede confirmado. [[slnc 1500]] Luego avísame por voz."
+say -v Paulina -o "$TMPDIR/f3.aiff" "Probemos el detector con ruido de fondo. [[slnc 1000]] Y ahora la segunda parte."
+for n in 1 2 3; do ffmpeg -y -i "$TMPDIR/f$n.aiff" -ar 16000 -ac 1 bench/audio/f$n.wav; done
+
+cd bench && ../.venv/bin/python bench_src.py</code></pre>
+<p>(<code>[[slnc N]]</code> inserta N milisegundos de silencio; las pausas naturales de <code>say</code> son de unos 250 ms, menos que el corte de 700 ms.) La salida es una tabla con, para cada nivel de ruido, los aciertos y cuánto del inicio de la frase se pierde, más el costo de CPU en microsegundos por cuadro. Es la forma de comprobar que un cambio al detector no empeora el ruido.</p>
+
+<h1 id="s9">9. Guía para forks</h1>
+
+<h2 id="h16">9.1 Enchufar otro motor de transcripción</h2>
+<p>El motor vive en <code>stt.py</code>. El resto del programa depende de este contrato, no de MLX:</p>
+<pre><code>transcribe_segments(audio, *, model, language, initial_prompt=None,
+                    condition_on_previous_text=False, dictation=True,
+                    lang_state=None)       # LangState: idioma pegajoso en vivo con language="auto"
+    -&gt; list[{"start": float, "end": float | None, "text": str}]
+transcribe(audio, **kw) -&gt; str            # los segmentos unidos
+stt.last_language                         # idioma de la última llamada, para la interfaz
+detect_language_probs(audio, model) -&gt; {"es": p, "en": p}   # LangState.choose decide</code></pre>
+<p><code>audio</code> puede ser una ruta de archivo o un arreglo float32 mono a 16 kHz. <code>voz.py</code> inyecta la función <code>transcribe</code> en <code>LiveSession</code> y en <code>liveui.run</code>, así que cambiar de motor es reemplazar esas funciones.</p>
+<ol>
+  <li>Implementa <code>transcribe_segments</code> con tu motor y devuelve segmentos con el formato de arriba.</li>
+  <li>Reutiliza los filtros: <code>_filter_segments</code> espera un diccionario <code>{"segments": [...]}</code> donde cada segmento trae <code>text</code>, <code>start</code>, <code>end</code>, <code>no_speech_prob</code>, <code>avg_logprob</code> y <code>compression_ratio</code>. faster-whisper expone esos mismos campos en sus segmentos (por verificar contra la versión que uses); adáptalos a diccionarios y no pierdes la defensa contra alucinaciones.</li>
+  <li>Implementa <code>detect_language_probs</code> y <code>detect_languages</code> para <code>--lang auto</code> (<code>LangState</code> solo consume las probabilidades).</li>
+  <li>Revisa los puntos que hoy tocan MLX directamente: en <code>stt.py</code>, <code>transcribe_segments</code> (<code>mlx_whisper.transcribe</code>), <code>detect_language_probs</code>, <code>detect_languages</code> y la liberación de caché (<code>mx.clear_cache</code>) en <code>transcribe_file_segments</code>; en <code>liveui.py</code>, <code>Audio._open_sim</code> (<code>mlx_whisper.audio.load_audio</code>); en <code>doctor.py</code>, el chequeo del import y de la caché de modelos.</li>
+  <li>Ajusta <code>DEFAULT_MODEL</code> y <code>ACCURATE_MODEL</code> a los nombres de tu motor, y las pruebas de <code>test_stt_clean.py</code> que fijan el formato de resultado.</li>
+</ol>
+
+<h2 id="h17">9.2 Portar a Windows o Linux</h2>
+<table>
+<thead><tr><th>Pieza</th><th>Dónde</th><th>Qué cambiar</th></tr></thead>
+<tbody>
+<tr><td>Portapapeles</td><td><code>output.py</code> (<code>to_clipboard</code>, <code>from_clipboard</code>)</td><td>Son dos funciones. <code>wl-copy</code> o <code>xclip</code> en Linux; <code>clip</code> o PowerShell en Windows. Cuida que reciban UTF-8.</td></tr>
+<tr><td>Captura de audio</td><td><code>record.py</code> (<code>open_input</code>)</td><td><code>sounddevice</code> ya es multiplataforma, así que debería bastar. La parada con tope de 1,5 s es una defensa contra un fallo de CoreAudio: en otras plataformas es inofensiva.</td></tr>
+<tr><td>Permisos de micrófono</td><td><code>voz.py</code> (<code>_warn_silence</code>), <code>doctor.py</code></td><td>El aviso habla de Ajustes del Sistema y de <code>tccutil</code>. Cámbialo por el equivalente de cada sistema.</td></tr>
+<tr><td>Teclado de la terminal</td><td><code>ui.py</code> (<code>Keys</code>)</td><td>Usa <code>termios</code>, <code>tty</code> y <code>select</code> sobre el descriptor de stdin: nada de eso existe en Windows. Ahí harían falta <code>msvcrt</code> o una biblioteca de entrada.</td></tr>
+<tr><td>Bloqueos de archivo</td><td><code>autosave.py</code> (<code>fcntl.flock</code>)</td><td>Solo POSIX. En Windows, <code>msvcrt.locking</code> u otro mecanismo para detectar sesiones huérfanas.</td></tr>
+<tr><td>Rutas de estado y de configuración</td><td><code>autosave.py</code>, <code>config.py</code>, <code>corrections.py</code></td><td>Siguen la convención de Linux (<code>~/.config</code>, <code>~/.local/state</code>); en Windows conviene usar <code>%APPDATA%</code> y <code>%LOCALAPPDATA%</code>.</td></tr>
+<tr><td>Señales</td><td><code>voz.py</code> (<code>_enable_stack_dump</code>)</td><td><code>SIGQUIT</code> no existe en Windows; el código ya lo tolera y simplemente no registra el volcado.</td></tr>
+<tr><td>Lanzador</td><td><code>bin/voz</code></td><td>Es un script <code>sh</code>. Para Windows, un <code>.cmd</code> o un punto de entrada de Python.</td></tr>
+<tr><td>Pruebas</td><td><code>tests/test_integration.py</code></td><td>Usan <code>say</code> (solo macOS). Sustitúyelo por otro sintetizador o por audios de prueba.</td></tr>
+</tbody></table>
+<div class="note">Recomendación: un PR por pieza (portapapeles, luego teclado, luego motor) y el camino de macOS siempre con sus tests en verde. Abre un issue antes para acordar la interfaz.</div>
+
+<h2 id="h18">9.3 Añadir un subcomando</h2>
+<p>Los subcomandos son valores del argumento posicional <code>target</code>. <code>voz.py</code> los lista en la tupla <code>COMMANDS</code> para no confundirlos con un archivo. Pasos:</p>
+<ol>
+  <li>Añade el nombre a <code>COMMANDS</code>.</li>
+  <li>En <code>main</code>, antes de cargar el glosario, añade una rama como la de <code>doctor</code>.</li>
+  <li>Implementa el comando en un módulo nuevo de <code>src/</code> con imports perezosos, para que <code>--help</code> siga siendo instantáneo.</li>
+  <li>Si necesita banderas nuevas, agrégalas al parser y valida las combinaciones en <code>parse_args</code>, como las demás.</li>
+  <li>Añade pruebas del parser en <code>tests/test_cli.py</code> y del módulo en su propio archivo.</li>
+</ol>
+<pre><code># src/voz.py
+COMMANDS = ("devices", "doctor", "ejemplo")
+
+def main(argv=None):
+    ...
+    if args.target == "ejemplo":
+        import ejemplo            # src/ejemplo.py, con run() -&gt; int
+        return ejemplo.run()</code></pre>
+<p>Una futura <code>voz habla</code> (texto a voz) encajaría exactamente así.</p>
+
+<h2 id="h19">9.4 Cómo contribuir y versionar</h2>
+<p>El proyecto usa GitHub Flow. El detalle y la plantilla de PR están en <code>CONTRIBUTING.md</code> y <code>.github/</code>; este es el resumen.</p>
+<ul>
+  <li><b>Ramas.</b> <code>main</code> está siempre estable y protegida. Todo cambio entra por un pull request desde una rama corta: <code>feat/…</code>, <code>fix/…</code>, <code>docs/…</code> o <code>chore/…</code>. El PR se integra con squash.</li>
+  <li><b>Commits.</b> Conventional Commits: <code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>refactor:</code>, <code>test:</code>, <code>chore:</code>.</li>
+  <li><b>Versiones.</b> Semánticas, con tags <code>vX.Y.Z</code> y un release en GitHub cuyas notas salen del <code>CHANGELOG.md</code>. El changelog sigue Keep a Changelog: lo nuevo va en <i>Unreleased</i> y esa sección se cierra al publicar.</li>
+  <li><b>Tests.</b> Todo cambio de comportamiento lleva su test; los unitarios corren con <code>pytest -q</code> y no necesitan modelo ni micrófono.</li>
+  <li><b>Entrada.</b> Los issues con la etiqueta <code>good first issue</code> son el mejor punto de partida.</li>
+</ul>
+<div class="note">No hay ramas <code>develop</code> ni <code>release</code>: es un proyecto pequeño con un solo mantenedor y GitHub Flow basta.</div>
+
+<h1 id="s10">10. Limitaciones conocidas y roadmap</h1>
+
+<h2 id="h20">10.1 Limitaciones</h2>
+<table>
+<thead><tr><th>Limitación</th><th>Detalle</th></tr></thead>
+<tbody>
+<tr><td>Solo macOS con Apple Silicon</td><td>MLX, <code>pbcopy</code>/<code>pbpaste</code> y CoreAudio.</td></tr>
+<tr><td>Deletreo pobre</td><td>Siglas, letras sueltas, rutas y claves salen como Whisper las escriba. Esta versión no las borra, pero tampoco las reconoce mejor.</td></tr>
+<tr><td>Sin diarización</td><td>No distingue quién habla. Todo es un solo texto.</td></tr>
+<tr><td>Glosario sensible a tildes</td><td><code>nequi</code> y <code>néqui</code> son claves distintas; no hay normalización Unicode.</td></tr>
+<tr><td>Reglas de varias palabras en vivo</td><td>No se aplican si una pausa parte la frase en dos tramos.</td></tr>
+<tr><td>Idiomas</td><td>En <code>auto</code> solo español e inglés. La sesión mantiene su idioma y solo cambia con evidencia fuerte; en llamadas o con varias voces conviene <code>--lang es</code>. Mezclar idiomas dentro de una frase sin pausa enreda a Whisper. Y <code>--lang</code> no se valida: un código inválido falla más tarde con un mensaje poco claro.</td></tr>
+<tr><td>Ruido fuerte</td><td>Con 10 dB de relación señal-ruido o peor el detector de pausas falla.</td></tr>
+<tr><td>Ruido blanco puro</td><td>Puede producir una palabra alucinada.</td></tr>
+<tr><td>«gracias» aislado</td><td>Con el micrófono se conserva si hubo voz real (solo se filtra si el audio es silencio); en archivos, aislado, se filtra por prudencia.</td></tr>
+<tr><td>Solo micrófono</td><td>No captura el audio del sistema (videollamadas). Usa el dispositivo de entrada por defecto de macOS; para otro, cámbialo en los ajustes de sonido del sistema.</td></tr>
+</tbody></table>
+
+<h2 id="h21">10.2 Roadmap</h2>
+<p>Sin fechas. Es un proyecto personal que avanza a ratos.</p>
+<ol>
+  <li><b>v0.1.1.</b> Glosario insensible a tildes (NFC y plegado de vocales), portapapeles con entorno UTF-8, validar <code>--lang</code>, señal sonora al terminar, tecla <code>e</code> para corregir una palabra y recordarla, tecla <code>i</code> para cambiar el idioma y reprocesar, idioma principal aprendido del uso, pista de vocabulario opcional y CI en GitHub Actions. Lista priorizada en <code>CHANGELOG.md</code>.</li>
+  <li><b>Windows y Linux</b> con un motor alternativo (faster-whisper u otro) detrás del contrato de la sección 9.1, y portapapeles y teclado multiplataforma.</li>
+  <li><b><code>voz habla</code></b>, a futuro: texto a voz, el camino inverso.</li>
+</ol>
+<p>Ideas en estudio, que piden medir o instalar algo antes de decidir: administrar el glosario desde la terminal, un modo de deletreo opcional (primero hace falta un corpus real de cómo escribe Whisper las letras), elegir el dispositivo de entrada, perfiles de ruido medidos, captura del audio del sistema con un dispositivo virtual y diarización solo para archivos. Grabar a 48 kHz y el <code>initial_prompt</code> están descartados (sección 6).</p>
+
+<h1 id="s11">11. Licencia</h1>
+<p><code>voz</code> se publica bajo la <b>licencia MIT</b>. Copyright (c) 2026 Daniel Patiño Vargas. El texto completo está en el archivo <code>LICENSE</code> del repositorio. Las dependencias (mlx-whisper, MLX, sounddevice, NumPy, SciPy, torch y los pesos de los modelos de Whisper) tienen cada una su propia licencia; revísalas si redistribuyes algo.</p>
+<p class="muted">Lo construimos Daniel y Claude (IA de Anthropic) en colaboración.</p>
+
+</body>
+</html>

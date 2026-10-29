@@ -1,0 +1,29 @@
+---
+import { getLatest } from '../lib/load.ts';
+import { getGuide } from '../lib/assets.ts';
+import { CHANGELOG_URL, LICENSE_URL, REPO, tagUrl } from '../lib/site.ts';
+
+const latest = await getLatest();
+const v = latest.version!;
+const guide = await getGuide(v);
+---
+<footer>
+  <div class="wrap foot">
+    <div>
+      <a class="logo" href="/" aria-label="voz, inicio"><svg aria-hidden="true"><use href="#medidor"/></svg><b>voz</b></a>
+      <p class="ver">v{v}</p>
+    </div>
+    <div>
+      <ul>
+        <li><a href={REPO}>GitHub</a></li>
+        {guide && <li><a href={guide.href}>{guide.direct ? 'Guía (PDF)' : 'Guía y descargas'}</a></li>}
+        {!guide && <li><a href={tagUrl(v)}>Release {v}</a></li>}
+        <li><a href={CHANGELOG_URL}>CHANGELOG</a></li>
+        <li><a href={LICENSE_URL}>Licencia MIT</a></li>
+        <li><a href="/cambios">Novedades</a></li>
+        <li><a href="/feed.xml">RSS</a></li>
+      </ul>
+      <p class="credit">Lo construimos Daniel y Claude (IA de Anthropic) en colaboración.</p>
+    </div>
+  </div>
+</footer>

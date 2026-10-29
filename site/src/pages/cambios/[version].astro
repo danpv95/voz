@@ -1,0 +1,64 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getReleases } from '../../lib/load.ts';
+import { getGuide } from '../../lib/assets.ts';
+import { formatDate, renderInline } from '../../lib/changelog.ts';
+import type { Release } from '../../lib/changelog.ts';
+import { CHANGELOG_URL } from '../../lib/site.ts';
+
+export async function getStaticPaths() {
+  const releases = await getReleases();
+  return releases.map((release, i) => ({
+    params: { version: release.slug },
+    props: { release, newer: releases[i - 1] ?? null, older: releases.slice(i + 1).find((r) => !r.unreleased) ?? null },
+  }));
+}
+
+interface Props { release: Release; newer: Release | null; older: Release | null }
+const { release: r, newer, older } = Astro.props;
+const guide = r.version ? await getGuide(r.version) : null;
+const title = r.unreleased ? 'Próximo' : `Versión ${r.version}`;
+const first = r.sections[0]?.items[0]?.summary;
+const description = r.unreleased
+  ? 'Lo que viene en voz: lista de trabajo del CHANGELOG, sin fechas.'
+  : `Notas de la versión ${r.version} de voz${r.date ? `, ${formatDate(r.date)}` : ''}${first ? `. Entre otras cosas: ${first}.` : '.'}`;
+const slugOf = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+---
+<Base title={`${title} · voz`} description={description} path={`/cambios/${r.slug}`} current="cambios">
+  <div class="wrap detail pad-end">
+    <div class="page-head">
+      <a class="crumb" href="/cambios">Novedades</a>
+      <h1>{title}</h1>
+      <p class="meta">
+        {r.unreleased
+          ? `Sin fecha${r.target ? ` · apunta a ${r.target}` : ''} · todavía sin publicar`
+          : (r.date ? formatDate(r.date) : 'Sin fecha')}
+      </p>
+      <ul class="links">
+        {r.releaseUrl && <li><a class="btn primary" href={r.releaseUrl}>Ver el release en GitHub</a></li>}
+        {r.compareUrl && <li><a class="btn" href={r.compareUrl}>Comparar con {r.previous}</a></li>}
+        {guide && <li><a class="btn" href={guide.href}>{guide.direct ? 'Guía (PDF)' : 'Guía y descargas'}</a></li>}
+        {r.unreleased && <li><a class="btn" href={CHANGELOG_URL}>Ver el CHANGELOG</a></li>}
+      </ul>
+      {r.intro.map((p) => <p class="intro" set:html={renderInline(p)} />)}
+      <ul class="jump" aria-label="Ir a una sección">
+        {r.sections.map((s) => <li><a href={`#${slugOf(s.title)}`}>{s.title} {s.items.length}</a></li>)}
+      </ul>
+    </div>
+
+    {r.sections.map((s) => (
+      <section class="rel-sec" id={slugOf(s.title)} aria-labelledby={`h-${slugOf(s.title)}`}>
+        <h2 id={`h-${slugOf(s.title)}`}>{s.title}</h2>
+        <ul>
+          {s.items.map((it) => <li set:html={renderInline(it.raw)} />)}
+        </ul>
+      </section>
+    ))}
+
+    <nav class="pager" aria-label="Otras versiones">
+      {newer && <a href={`/cambios/${newer.slug}`}>{newer.unreleased ? 'Próximo' : `Versión ${newer.version}`} (más reciente)</a>}
+      {older && <a href={`/cambios/${older.slug}`}>Versión {older.version} (anterior)</a>}
+      <a href="/cambios">Todas las versiones</a>
+    </nav>
+  </div>
+</Base>

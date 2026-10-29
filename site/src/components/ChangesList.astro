@@ -1,0 +1,64 @@
+---
+import ReleaseCard from './ReleaseCard.astro';
+import { getReleases } from '../lib/load.ts';
+import { formatDate } from '../lib/changelog.ts';
+
+interface Props { tipo?: 'anadido' | 'cambiado' | 'corregido' }
+const { tipo } = Astro.props;
+const releases = await getReleases();
+const firstPublished = releases.find((r) => !r.unreleased);
+
+const FILTERS = [
+  { tipo: '', label: 'Todo', href: '/cambios' },
+  { tipo: 'anadido', label: 'Añadido', href: '/cambios?tipo=anadido' },
+  { tipo: 'cambiado', label: 'Cambiado', href: '/cambios?tipo=cambiado' },
+  { tipo: 'corregido', label: 'Corregido', href: '/cambios?tipo=corregido' },
+];
+const LABEL = { anadido: 'Añadido', cambiado: 'Cambiado', corregido: 'Corregido' } as const;
+const shown = tipo ? releases.filter((r) => !r.unreleased && r.sections.some((s) => s.kind === tipo)).length : 0;
+---
+<div class="wrap pad-end">
+  <div class="page-head">
+    <h1>Novedades</h1>
+    <p class="lead">El historial de voz sale del <a href="https://github.com/danpv95/voz/blob/main/CHANGELOG.md">CHANGELOG</a> del repositorio. Arriba, lo que viene; debajo, lo que ya se publicó.</p>
+    <ul class="filters" aria-label="Filtrar por tipo de cambio">
+      {FILTERS.map((f) => (
+        <li><a href={f.href} data-tipo={f.tipo} aria-current={(f.tipo || undefined) === tipo ? 'true' : undefined}>{f.label}</a></li>
+      ))}
+    </ul>
+    <p class="vh" role="status" aria-live="polite" id="filter-status">{tipo ? `${shown} ${shown === 1 ? 'versión con' : 'versiones con'} cambios de tipo ${LABEL[tipo]}.` : ''}</p>
+  </div>
+  <ol class="timeline">
+    {releases.map((r) => (
+      <li><ReleaseCard release={r} latest={r === firstPublished} preview /></li>
+    ))}
+  </ol>
+</div>
+
+<dialog id="preview-dialog" aria-labelledby="preview-title">
+  <div class="dlg-head">
+    <h2 id="preview-title">Versión</h2>
+    <button class="dlg-close" type="button" data-close>Cerrar</button>
+  </div>
+  <div class="dlg-body" id="preview-body"></div>
+</dialog>
+
+{releases.map((r) => {
+  const title = r.unreleased ? 'Próximo' : `Versión ${r.version}`;
+  return (
+    <template id={`tpl-${r.slug}`} data-title={title}>
+      <p class="meta">{r.unreleased
+        ? `Sin fecha${r.target ? ` · apunta a ${r.target}` : ''}`
+        : (r.date ? formatDate(r.date) : 'Sin fecha')}</p>
+      {r.intro[0] && <p class="lead" style="margin-top:12px">{r.intro[0]}</p>}
+      <p class="counts">{r.sections.map((s) => `${s.title} ${s.items.length}`).join(' · ')}</p>
+      <ul class="hl">{r.highlights.map((h) => <li>{h}</li>)}</ul>
+      <ul class="links">
+        <li><a class="btn primary" href={`/cambios/${r.slug}`} data-autofocus>Ver la versión completa</a></li>
+      </ul>
+    </template>
+  );
+})}
+<script>
+  import '../scripts/changes.ts';
+</script>

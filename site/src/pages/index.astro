@@ -1,0 +1,152 @@
+---
+import Base from '../layouts/Base.astro';
+import GithubIcon from '../components/GithubIcon.astro';
+import Terminal from '../components/Terminal.astro';
+import InstallToday from '../components/InstallToday.astro';
+import ReleaseCard from '../components/ReleaseCard.astro';
+import { getLatest } from '../lib/load.ts';
+import { DESCRIPTION, ISSUE_ONE_LINE, REPO } from '../lib/site.ts';
+
+const latest = await getLatest();
+const v = latest.version!;
+const site = Astro.site!.href.replace(/\/$/, '');
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'voz',
+  description: DESCRIPTION,
+  url: site,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'macOS',
+  processorRequirements: 'Apple Silicon (arm64)',
+  softwareVersion: v,
+  inLanguage: ['es', 'en'],
+  license: 'https://opensource.org/licenses/MIT',
+  codeRepository: REPO,
+  downloadUrl: REPO,
+  releaseNotes: `${site}/cambios/${v}`,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  author: { '@type': 'Person', name: 'Daniel Patiño Vargas', url: 'https://github.com/danpv95' },
+};
+---
+<Base
+  title="voz · Dicta como hablas. Pega como escribes."
+  description="Dictado por voz para la terminal, 100 % en tu Mac. Español e inglés, sin cuentas y sin nube. Ningún audio sale de tu equipo."
+  path="/"
+  jsonLd={jsonLd}
+>
+  <section class="hero" aria-labelledby="titular">
+    <div class="wrap hero-body">
+      <div class="hero-main">
+        <h1 id="titular"><span class="h-said">Dicta como hablas.</span> <span class="h-pasted">Pega como escribes.</span></h1>
+
+        <div class="said">
+          <p class="status"><span class="rec" aria-hidden="true">●</span><span>Escuchando</span><span>00:07</span>
+            <span class="meter" role="img" aria-label="Medidor de voz: cinco puntos de silencio, tres barras de voz, dos puntos"><i></i><i></i><i></i><i></i><i></i><i class="b b1"></i><i class="b b2"></i><i class="b b1"></i><i></i><i></i></span>
+            <span>es</span></p>
+          <p class="spoken">revisa el módulo de facturación antes del viernes y separa el texto parcial <span class="prov">del confirmado</span></p>
+        </div>
+
+        <span class="seam" aria-hidden="true">↵</span>
+
+        <div class="pasted">
+          <p class="pasted-text"><span class="add">R</span>evisa el módulo de facturación antes del viernes y separa el texto parcial del confirmado<span class="add">.</span><span class="caret" aria-hidden="true"></span></p>
+          <p class="copied"><span class="ok">✓  Copiado</span><span>Cmd-V para pegar</span></p>
+        </div>
+
+        <p class="dek">100 % en tu Mac. Ningún audio sale de tu equipo.</p>
+
+        <div class="act">
+          <div class="btns">
+            <a class="btn primary" href="/#instalar" data-open-install aria-haspopup="dialog">Instalar</a>
+            <a class="btn" href={REPO}><GithubIcon />Ver en GitHub</a>
+          </div>
+          <ul class="plat" aria-label="Plataformas">
+            <li class="on"><span class="pm" aria-hidden="true"><i class="b b1"></i><i class="b b2"></i><i class="b b1"></i></span><span>CLI · disponible hoy</span></li>
+            <li><span class="pm" aria-hidden="true"><i></i><i></i><i></i></span><span>App de macOS · próximamente</span></li>
+            <li><span class="pm" aria-hidden="true"><i></i><i></i><i></i></span><span>Windows y Linux · próximamente</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sesion" aria-labelledby="t-sesion">
+    <div class="wrap sec-head">
+      <div>
+        <h2 id="t-sesion">Una sesión real</h2>
+        <p class="lead">Esto es texto, no una captura: puedes seleccionarlo. En silencio el medidor dibuja puntos; cuando te oye, barras. Lo confirmado se ve normal y lo que voz todavía está pensando, más tenue.</p>
+        <p class="small">Es una ilustración del flujo. Los tiempos y el texto cambian con lo que digas.</p>
+        <dl class="notes">
+          <div><dt>El medidor</dt><dd>Si hablas y solo ves puntos, revisa el micrófono con <code>voz doctor --mic</code>.</dd></div>
+          <div><dt>El final</dt><dd>Al terminar, el texto ya está en el portapapeles: haces <code>Cmd-V</code> en Claude Code, en tu editor o donde quieras.</dd></div>
+          <div><dt>En una terminal estrecha</dt><dd>Las teclas pasan a su propia línea y se recorta antes el medidor. Achica esta pantalla y míralo.</dd></div>
+        </dl>
+      </div>
+      <Terminal />
+    </div>
+  </section>
+
+  <section id="instalar" aria-labelledby="t-inst">
+    <div class="wrap">
+      <h2 id="t-inst">Instalar voz</h2>
+
+      <div class="tabs" role="tablist" aria-label="Forma de instalación" id="tablist" hidden>
+        <button class="tab" role="tab" id="tab-hoy" aria-controls="p-hoy" aria-selected="true" type="button">Hoy</button>
+        <button class="tab" role="tab" id="tab-pronto" aria-controls="p-pronto" aria-selected="false" tabindex="-1" type="button">Próximamente</button>
+      </div>
+
+      <div id="p-hoy" role="tabpanel" aria-labelledby="tab-hoy"><InstallToday /></div>
+
+      <div id="p-pronto" role="tabpanel" aria-labelledby="tab-pronto" style="margin-top:48px">
+        <div class="soon">
+          <div>
+            <h3>Una línea <span class="tag">próximamente</span></h3>
+            <code class="fake">curl -fsSL …/install.sh | sh</code>
+            <p class="note">Un solo comando que haga todo lo anterior. Todavía no existe: hoy usa la pestaña Hoy. Seguimiento en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
+          </div>
+          <div>
+            <h3>Homebrew <span class="tag">próximamente</span></h3>
+            <p class="note" style="margin-top:0">Instalar con <code>brew</code>, sin clonar el repositorio. Sin fecha, también en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacidad" aria-labelledby="t-priv">
+    <div class="wrap sec-head">
+      <h2 id="t-priv">Tu voz no sale de tu Mac.</h2>
+      <dl class="facts">
+        <div><dt>Local</dt><dd>El audio y el texto se procesan en tu equipo. No hay cuentas, claves ni telemetría.</dd></div>
+        <div><dt>Sin conexión</dt><dd>Con el modelo ya descargado, voz no abre conexiones. La única excepción es esa primera descarga, y te avisa antes.</dd></div>
+        <div><dt>Solo tuyo</dt><dd>Mientras grabas, el audio se guarda en <code>~/.local/state/voz/</code> (las últimas 5 sesiones), con permisos que solo te dejan leerlo a ti. Puedes borrar la carpeta cuando quieras.</dd></div>
+        <div><dt>Abierto</dt><dd>Licencia MIT. Puedes leer el código y hacer fork.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="novedades" aria-labelledby="t-nov">
+    <div class="wrap sec-head">
+      <div>
+        <h2 id="t-nov">Novedades</h2>
+        <p class="lead">Lo último que se publicó. El historial completo sale del CHANGELOG del repositorio.</p>
+        <a class="more" href="/cambios">Ver todas las versiones</a>
+      </div>
+      <ReleaseCard release={latest} mode="home" latest />
+    </div>
+  </section>
+
+  <dialog id="install-dialog" slot="after" aria-labelledby="install-title">
+    <div class="dlg-head">
+      <h2 id="install-title">Instalar voz</h2>
+      <button class="dlg-close" type="button" data-close>Cerrar</button>
+    </div>
+    <div class="dlg-body"><InstallToday /></div>
+  </dialog>
+
+  <script>
+    import '../scripts/install.ts';
+  </script>
+</Base>

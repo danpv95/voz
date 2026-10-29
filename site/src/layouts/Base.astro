@@ -1,0 +1,69 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Ruta canónica, p. ej. `/cambios`. */
+  path?: string;
+  noindex?: boolean;
+  jsonLd?: Record<string, unknown>;
+  current?: 'cambios' | 'home';
+  /** Atributos extra para <main>. */
+  mainAttrs?: Record<string, string>;
+}
+const { title, description, path = Astro.url.pathname, noindex = false, jsonLd, current = 'home', mainAttrs = {} } = Astro.props;
+const canonical = new URL(path === '/' ? '/' : path.replace(/\/$/, ''), Astro.site).href;
+const og = new URL('/og.png', Astro.site).href;
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FBFBFC">
+  {noindex && <meta name="robots" content="noindex, follow">}
+  <link rel="canonical" href={canonical}>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate" type="application/rss+xml" title="Versiones de voz" href="/feed.xml">
+  <link rel="preload" href="/fonts/fraunces-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="voz">
+  <meta property="og:title" content={title}>
+  <meta property="og:description" content={description}>
+  <meta property="og:url" content={canonical}>
+  <meta property="og:image" content={og}>
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="voz: Dicta como hablas. Pega como escribes.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content={title}>
+  <meta name="twitter:description" content={description}>
+  <meta name="twitter:image" content={og}>
+  {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="medidor" viewBox="0 0 60 20">
+      <g fill="var(--dot)"><circle cx="3" cy="10" r="1.8"/><circle cx="9" cy="10" r="1.8"/><circle cx="15" cy="10" r="1.8"/><circle cx="21" cy="10" r="1.8"/><circle cx="27" cy="10" r="1.8"/><circle cx="51" cy="10" r="1.8"/><circle cx="57" cy="10" r="1.8"/></g>
+      <g fill="var(--blue)"><rect x="31.2" y="6" width="3.6" height="8" rx="1.8"/><rect x="37.2" y="3" width="3.6" height="14" rx="1.8"/><rect x="43.2" y="6" width="3.6" height="8" rx="1.8"/></g>
+    </symbol>
+  </svg>
+  <Header current={current} />
+  <main id="contenido" {...mainAttrs}>
+    <slot />
+  </main>
+  <Footer />
+  <p class="vh" role="status" aria-live="polite" id="live"></p>
+  <slot name="after" />
+  <script>
+    import '../scripts/copy.ts';
+  </script>
+</body>
+</html>

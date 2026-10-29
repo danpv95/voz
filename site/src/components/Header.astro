@@ -1,0 +1,17 @@
+---
+interface Props { current?: 'cambios' | 'home' }
+const { current = 'home' } = Astro.props;
+---
+<div class="site-top">
+  <div class="wrap">
+    <header class="top">
+      <a class="logo" href="/" aria-label="voz, inicio"><svg aria-hidden="true"><use href="#medidor"/></svg><b>voz</b></a>
+      <nav class="nav" aria-label="Principal">
+        <a class="opt" href="/#sesion">Una sesión</a>
+        <a class="opt" href="/#privacidad">Privacidad</a>
+        <a href="/cambios" aria-current={current === 'cambios' ? 'page' : undefined}>Novedades</a>
+        <a href="/#instalar">Instalar</a>
+      </nav>
+    </header>
+  </div>
+</div>

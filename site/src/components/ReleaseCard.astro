@@ -1,0 +1,44 @@
+---
+import type { Release, Kind } from '../lib/changelog.ts';
+import { formatDate } from '../lib/changelog.ts';
+
+interface Props {
+  release: Release;
+  /** `list`: con todas las listas de destacados por tipo (filtros). `home`: solo los generales. */
+  mode?: 'list' | 'home';
+  latest?: boolean;
+  /** Atributo para que el JS de /cambios abra la vista previa. */
+  preview?: boolean;
+}
+const { release: r, mode = 'list', latest = false, preview = false } = Astro.props;
+
+const FILTER_KINDS: Kind[] = ['anadido', 'cambiado', 'corregido'];
+const kinds = r.sections.map((s) => s.kind).filter((k) => FILTER_KINDS.includes(k));
+const href = `/cambios/${r.slug}`;
+const counts = r.sections.map((s) => `${s.title} ${s.items.length}`).join(' · ');
+const heading = r.unreleased ? 'Próximo' : `Versión ${r.version}`;
+---
+<article class:list={['card', { next: r.unreleased }]} data-kinds={kinds.join(' ')}>
+  <h3>
+    <a class="card-link" href={href} {...(preview ? { 'data-release-link': r.slug } : {})}>{heading}</a>
+    {r.unreleased && <span class="badge">en trabajo</span>}
+    {latest && <span class="badge">última</span>}
+  </h3>
+  <p class="meta">
+    {r.unreleased
+      ? `Sin fecha${r.target ? ` · apunta a ${r.target}` : ''}`
+      : <time datetime={r.date ?? undefined}>{r.date ? formatDate(r.date) : 'Sin fecha'}</time>}
+  </p>
+  {r.unreleased && r.intro[0] && <p class="intro">{r.intro[0]}</p>}
+  <p class="counts">{counts}</p>
+  <ul class="hl" data-kind={mode === 'list' && !r.unreleased ? 'todo' : undefined}>
+    {r.highlights.map((h) => <li>{h}</li>)}
+  </ul>
+  {mode === 'list' && !r.unreleased && r.sections
+    .filter((s) => FILTER_KINDS.includes(s.kind))
+    .map((s) => (
+      <ul class="hl" data-kind={s.kind}>
+        {s.highlights.map((h) => <li>{h}</li>)}
+      </ul>
+    ))}
+</article>

@@ -1,0 +1,21 @@
+---
+// Versión del historial ya filtrada en el HTML. Vercel reescribe `/cambios?tipo=x` hacia aquí (vercel.json),
+// así el filtro funciona sin JS. No se indexa: la canónica es /cambios.
+import Base from '../../../layouts/Base.astro';
+import ChangesList from '../../../components/ChangesList.astro';
+
+export function getStaticPaths() {
+  return (['anadido', 'cambiado', 'corregido'] as const).map((tipo) => ({ params: { tipo }, props: { tipo } }));
+}
+const { tipo } = Astro.props;
+---
+<Base
+  title="Novedades · voz"
+  description="Historial de versiones de voz filtrado por tipo de cambio."
+  path="/cambios"
+  current="cambios"
+  noindex
+  mainAttrs={{ 'data-tipo': tipo }}
+>
+  <ChangesList tipo={tipo} />
+</Base>

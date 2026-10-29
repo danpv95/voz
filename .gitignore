@@ -23,3 +23,8 @@ CLAUDE.md
 AGENTS.md
 .claude/
 .cursor/
+
+# Sitio (site/)
+site/node_modules/
+site/dist/
+site/.astro/

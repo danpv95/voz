@@ -1,0 +1,10 @@
+{
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/cambios",
+      "has": [{ "type": "query", "key": "tipo", "value": "(?<tipo>anadido|cambiado|corregido)" }],
+      "destination": "/cambios/tipo/:tipo"
+    }
+  ]
+}

@@ -14,7 +14,7 @@ npm test          # pruebas del parser del CHANGELOG
 npm run typecheck # tsc estricto sobre src, tests y scripts
 ```
 
-`SITE_URL` fija la URL pública para canonical, Open Graph, sitemap y RSS (por defecto `https://voz.vercel.app`).
+`SITE_URL` fija la URL pública para canonical, Open Graph, sitemap y RSS (por defecto `https://voz-cli.vercel.app`).
 
 ## Cómo se genera el historial
 

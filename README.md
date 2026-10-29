@@ -5,7 +5,7 @@
 ![platform macOS Apple Silicon](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey.svg)
 ![version 0.1.0](https://img.shields.io/badge/version-0.1.0-informational.svg)
 
-Web: [voz.vercel.app](https://voz.vercel.app) (cómo se ve, cómo instalarlo y qué cambió en cada versión) <!-- URL-WEB -->
+Web: [voz-cli.vercel.app](https://voz-cli.vercel.app) (cómo se ve, cómo instalarlo y qué cambió en cada versión)
 
 **Español** · [English](README.en.md)
 

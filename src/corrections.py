@@ -13,11 +13,14 @@ from __future__ import annotations
 import re
 import sys
 import tomllib
+import unicodedata
 from pathlib import Path
 
 DEFAULT_PATH = Path.home() / ".config" / "voz" / "corrections.toml"
 
 Rule = tuple[re.Pattern, str]
+
+_VOWEL_PATTERNS = {c: f"[{pair}]" for pair in ("aá", "eé", "ií", "oó", "uú") for c in pair}
 
 
 def load(path: Path | None = None) -> list[Rule]:
@@ -38,7 +41,9 @@ def load(path: Path | None = None) -> list[Rule]:
         return []
     # Longer keys first so multi-word rules win ("cloud code" before "cloud").
     rules: list[Rule] = []
-    for key, value in sorted(replacements.items(), key=lambda kv: len(kv[0]), reverse=True):
+    for key, value in sorted(replacements.items(),
+                             key=lambda kv: len(unicodedata.normalize("NFC", kv[0])), reverse=True):
+        key = unicodedata.normalize("NFC", key)
         if not isinstance(value, str):
             print(f"⚠  regla '{key}': el valor debe ser texto, ignorada.", file=sys.stderr)
             continue
@@ -50,7 +55,8 @@ def load(path: Path | None = None) -> list[Rule]:
         # case variant of the word to `value`.
         # (?<!\w)...(?!\w): word boundaries that also work when the key starts/ends
         # in a non-word char. Python re is Unicode, so á/ñ count as \w.
-        pattern = re.compile(rf"(?<!\w){re.escape(key)}(?!\w)", re.IGNORECASE)
+        escaped = "".join(_VOWEL_PATTERNS.get(c.lower(), re.escape(c)) for c in key)
+        pattern = re.compile(rf"(?<!\w){escaped}(?!\w)", re.IGNORECASE)
         rules.append((pattern, value))
     return rules
 
@@ -82,4 +88,4 @@ def apply(text: str, rules: list[Rule]) -> str:
                 return value                     # literal: "C:\\dev" is not a regex escape
         return m.group()
 
-    return _combined(rules).sub(pick, text)
+    return _combined(rules).sub(pick, unicodedata.normalize("NFC", text))

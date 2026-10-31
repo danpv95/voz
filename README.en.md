@@ -229,7 +229,7 @@ What we know does not work well, no sugarcoating:
 - **Calls or several voices: fix the language.** In `auto`, distant audio or several voices can confuse the detector. The session is sticky and only switches on strong evidence, but for calls or several voices `--lang es` (or `--lang en`) is the safer choice.
 - With the microphone, a lone "gracias" is kept when you really spoke: it is dropped only if the audio is silence (a typical Whisper hallucination). In files, an isolated "gracias" is dropped, to be safe.
 - With strong background noise (10 dB signal-to-noise or worse) the pause detector fails.
-- The glossary is accent-sensitive: `nequi` and `néqui` are different rules.
+- The glossary normalizes Unicode and ignores acute accents on vowels: `nequi` matches `néqui`; `ñ` remains distinct from `n`.
 - It does not capture system audio (for example an online meeting): only the microphone.
 
 ## Roadmap

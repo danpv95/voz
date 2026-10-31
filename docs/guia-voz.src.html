@@ -561,7 +561,7 @@ principal = "es"       # es | en</code></pre>
 "supa base" = "Supabase"      # clave: lo que Whisper escribe · valor: lo que querías
 "cloud code" = "Claude Code"</code></pre>
 <ul>
-  <li>Las claves no distinguen mayúsculas, pero sí tildes (hoy no se pliegan).</li>
+  <li>Las claves se normalizan a NFC y no distinguen mayúsculas ni tildes en vocales; <code>ñ</code> sigue siendo distinta de <code>n</code>.</li>
   <li>Las claves se ordenan de la más larga a la más corta: gana la regla de varias palabras.</li>
   <li>Claves de menos de 3 caracteres se ignoran con un aviso. Una regla que solo cambia mayúsculas (<code>"nit" = "NIT"</code>) es válida: normaliza cualquier variante de la palabra.</li>
   <li>En el modo en vivo se aplica por tramo; una regla de varias palabras partida por una pausa no se aplica. En archivos, por segmento.</li>
@@ -715,7 +715,7 @@ def main(argv=None):
 <tr><td>Solo macOS con Apple Silicon</td><td>MLX, <code>pbcopy</code>/<code>pbpaste</code> y CoreAudio.</td></tr>
 <tr><td>Deletreo pobre</td><td>Siglas, letras sueltas, rutas y claves salen como Whisper las escriba. Esta versión no las borra, pero tampoco las reconoce mejor.</td></tr>
 <tr><td>Sin diarización</td><td>No distingue quién habla. Todo es un solo texto.</td></tr>
-<tr><td>Glosario sensible a tildes</td><td><code>nequi</code> y <code>néqui</code> son claves distintas; no hay normalización Unicode.</td></tr>
+
 <tr><td>Reglas de varias palabras en vivo</td><td>No se aplican si una pausa parte la frase en dos tramos.</td></tr>
 <tr><td>Idiomas</td><td>En <code>auto</code> solo español e inglés. La sesión mantiene su idioma y solo cambia con evidencia fuerte; en llamadas o con varias voces conviene <code>--lang es</code>. Mezclar idiomas dentro de una frase sin pausa enreda a Whisper. Y <code>--lang</code> no se valida: un código inválido falla más tarde con un mensaje poco claro.</td></tr>
 <tr><td>Ruido fuerte</td><td>Con 10 dB de relación señal-ruido o peor el detector de pausas falla.</td></tr>

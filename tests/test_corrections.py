@@ -58,7 +58,7 @@ def test_word_boundaries_with_accents(tmp_path):
     rules = rules_from(tmp_path, '[replacements]\n"cifra" = "Zifra"\n')
     assert corrections.apply("usa cifra", rules) == "usa Zifra"
     # must not touch longer words that merely contain the key
-    assert corrections.apply("descifrado cifrado cifrá", rules) == "descifrado cifrado cifrá"
+    assert corrections.apply("descifrado cifrado cifrá", rules) == "descifrado cifrado Zifra"
 
 
 def test_example_config_does_not_mangle_legit_english():
@@ -85,3 +85,24 @@ def test_wrong_types_warn_and_skip(tmp_path, capsys):
     rules = rules_from(tmp_path, '[replacements]\n"neki" = 5\n"neque" = "Nequi"\n')
     assert len(rules) == 1 and corrections.apply("usa neque", rules) == "usa Nequi"
     assert "'neki'" in capsys.readouterr().err
+
+
+def test_accent_and_unicode_variants(tmp_path):
+    rules = rules_from(tmp_path, '[replacements]\n"nequi" = "Nequi"\n"guión" = "Guion"\n')
+    assert corrections.apply("Néqui NEQUI Ne\u0301qui guion guio\u0301n", rules) == "Nequi Nequi Nequi Guion Guion"
+    assert corrections.apply("café y Néqui", rules) == "café y Nequi"
+
+
+def test_normalized_keys_keep_enye_distinct(tmp_path):
+    rules = rules_from(tmp_path, '[replacements]\n"pin\u0303a" = "PIÑA"\n')
+    assert corrections.apply("piña pin\u0303a pina", rules) == "PIÑA PIÑA pina"
+
+
+def test_normalized_key_length_is_validated(tmp_path):
+    rules = rules_from(tmp_path, '[replacements]\n"a\u0301b" = "AB"\n')
+    assert rules == []
+
+
+def test_accent_rules_keep_single_pass_and_literal_values(tmp_path):
+    rules = rules_from(tmp_path, '[replacements]\n"nequi" = "guión"\n"guion" = "changed"\n')
+    assert corrections.apply("néqui", rules) == "guión"

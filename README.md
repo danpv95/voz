@@ -227,7 +227,7 @@ Lo que sabemos que no funciona bien, sin maquillar:
 - **Llamadas o varias voces: fija el idioma.** En `auto` el audio lejano o con varias voces puede confundir al detector. La sesión es pegajosa y solo cambia con evidencia fuerte, pero en llamadas o con varias voces conviene `--lang es` (o `--lang en`).
 - Con el micrófono, un «gracias» dicho solo se conserva cuando de verdad hablaste: se descarta únicamente si el audio es silencio (alucinación típica de Whisper). En archivos, un «gracias» aislado sí se descarta, por prudencia.
 - Con ruido fuerte de fondo (10 dB de relación señal-ruido o peor) el detector de pausas falla.
-- El glosario distingue tildes: `nequi` y `néqui` son reglas distintas.
+- El glosario normaliza Unicode y no distingue tildes en vocales: `nequi` casa con `néqui`; `ñ` sigue siendo distinta de `n`.
 - No captura el audio del sistema (por ejemplo, el de una reunión en línea): solo el micrófono.
 
 ## Roadmap

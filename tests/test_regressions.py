@@ -1,4 +1,5 @@
 """Regressions for the main failure modes: model load, chunks, files and exit codes."""
+import os
 import sys
 import types
 
@@ -84,9 +85,18 @@ def test_missing_model_is_retried_online(monkeypatch, capsys):
         return {"segments": [{"text": "hola", "start": 0.0, "end": 1.0,
                               "no_speech_prob": 0.0, "avg_logprob": -0.1}]}
 
+    downloads = []
+
+    def snapshot_download(*, repo_id, tqdm_class):
+        assert os.environ["HF_HUB_OFFLINE"] == "0"
+        downloads.append(repo_id)
+
+    monkeypatch.setattr("huggingface_hub.snapshot_download", snapshot_download)
     calls = _fake_mlx(monkeypatch, first_missing)
     assert stt.transcribe("x.wav") == "hola"
     assert calls["n"] == 2 and "descargando" in capsys.readouterr().err
+    assert downloads == [stt.DEFAULT_MODEL]
+    assert os.environ["HF_HUB_OFFLINE"] == "1"
 
 
 # 5 - a real spoken "gracias" survives; silence hallucination does not

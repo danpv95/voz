@@ -126,12 +126,25 @@ voz meeting.m4a --srt       # also write meeting.srt with timestamps
 voz meeting.m4a --json      # and/or meeting.json with the segments
 voz note.ogg --no-copy > note.txt   # stdout only, clipboard untouched
 
+voz copiar                  # copy the last saved recording again ("copiar" = copy)
+voz copiar 2                # the one before it (voz copiar --lista lists them numbered)
 voz doctor                  # offline diagnostics (voz doctor --mic records 1 s)
 voz devices                 # list audio devices
 voz --version
 ```
 
 `voz` prints only the transcript on stdout. Everything else (status, warnings) goes to stderr, so `voz file.m4a | pbcopy` or a redirect stay clean. `--srt` and `--json` never overwrite: if the file exists they write `meeting-1.srt`, `meeting-2.srt`, and so on.
+
+**If you lost the text** (closed the terminal, copied something over it), `voz copiar` recovers it from `~/.local/state/voz`, where `voz` keeps the last 5 sessions. It counts recordings from newest to oldest and skips discarded ones:
+
+```bash
+voz copiar --lista          # date, length, words and the start of each one, numbered
+voz copiar 3                # the third one on that list
+voz copiar --todas          # every recording of the last session, joined
+voz copiar --stdout | less  # print instead of copying
+```
+
+It reports on stderr what it copied (`✓ Copiado · sesión 2026-11-03 12:00 · grabación 2 · 41 palabras`, i.e. copied, session, recording, words). It saves nothing new and touches no files.
 
 Main flags:
 

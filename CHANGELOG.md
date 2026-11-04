@@ -6,7 +6,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## Unreleased / 0.1.1
 
-Pendiente, en orden de prioridad. Es una lista de trabajo, no una promesa de fechas.
+Ya hecho en esta versión: «Añadido» y «Corregido». Lo demás es pendiente, en orden de prioridad; es una lista de trabajo, no una promesa de fechas.
+
+### Añadido
+- `voz copiar [N]` vuelve a copiar una grabación guardada en `~/.local/state/voz` (la última no descartada; `--todas`, `--lista`, `--stdout`).
+
+### Corregido
+- En vivo, los tramos sin voz ya no llegan a Whisper (#7): un tramo cuyo pico (RMS de 30 ms) queda bajo 0,015 se descarta, y el idioma solo sale del español con un tramo de al menos 3 s y si el texto se acepta. Diagnóstico opcional con `VOZ_DIAG=1` (sin texto).
 
 ### Correcciones prioritarias
 1. Glosario insensible a tildes y con normalización Unicode NFC (hoy `nequi` y `néqui` son reglas distintas).

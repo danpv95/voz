@@ -17,6 +17,15 @@ def primary_language_es(monkeypatch):
     monkeypatch.setattr(stt, "default_primary", lambda: "es")
 
 
+@pytest.fixture(autouse=True)
+def no_peak_gate(monkeypatch):
+    """Most tests push placeholder chunks (zeros, tiny arrays) through a fake transcriber:
+    switch the live peak gate off for them. tests/test_silence_gate.py turns it back on."""
+    import live
+
+    monkeypatch.setattr(live, "MIN_CHUNK_PEAK", 0.0)
+
+
 @pytest.fixture
 def shell(monkeypatch, tmp_path):
     """Factory of liveui.Shell with a fake clipboard, a fake recorder and a private state dir."""

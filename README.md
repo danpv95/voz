@@ -126,12 +126,25 @@ voz reunion.m4a --srt       # además escribe reunion.srt con tiempos
 voz reunion.m4a --json      # y/o reunion.json con los segmentos
 voz nota.ogg --no-copy > nota.txt   # solo stdout, nada al portapapeles
 
+voz copiar                  # vuelve a copiar la última grabación guardada
+voz copiar 2                # la penúltima (voz copiar --lista las muestra numeradas)
 voz doctor                  # diagnóstico sin red (voz doctor --mic graba 1 s)
 voz devices                 # lista los dispositivos de audio
 voz --version
 ```
 
 `voz` imprime en stdout solo la transcripción. Todo lo demás (estado, avisos) va a stderr, así que `voz archivo.m4a | pbcopy` o redirigir a un archivo funcionan limpios. Los `--srt` y `--json` nunca sobrescriben: si ya existen, crean `reunion-1.srt`, `reunion-2.srt`, etc.
+
+**Si perdiste el texto** (cerraste la terminal, copiaste otra cosa encima), `voz copiar` lo recupera de `~/.local/state/voz`, donde `voz` guarda las últimas 5 sesiones. Cuenta las grabaciones de la más reciente a la más antigua y se salta las descartadas:
+
+```bash
+voz copiar --lista          # fecha, duración, palabras y el comienzo de cada una, numeradas
+voz copiar 3                # la tercera de esa lista
+voz copiar --todas          # todas las grabaciones de la última sesión, unidas
+voz copiar --stdout | less  # imprime en vez de copiar
+```
+
+Dice por stderr qué copió (`✓ Copiado · sesión 2026-11-03 12:00 · grabación 2 · 41 palabras`). No guarda nada nuevo ni toca los archivos.
 
 Banderas principales:
 

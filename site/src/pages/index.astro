@@ -45,17 +45,17 @@ const jsonLd = {
           <p class="status"><span class="rec" aria-hidden="true">●</span><span>Escuchando</span><span>00:07</span>
             <span class="meter" role="img" aria-label="Medidor de voz: cinco puntos de silencio, tres barras de voz, dos puntos"><i></i><i></i><i></i><i></i><i></i><i class="b b1"></i><i class="b b2"></i><i class="b b1"></i><i></i><i></i></span>
             <span>es</span></p>
-          <p class="spoken">revisa el módulo de facturación antes del viernes y separa el texto parcial <span class="prov">del confirmado</span></p>
+          <p class="spoken">Necesito que revises el módulo de facturación antes del viernes y separa el texto parcial <span class="prov">del confirmado</span></p>
         </div>
 
         <span class="seam" aria-hidden="true">↵</span>
 
         <div class="pasted">
-          <p class="pasted-text"><span class="add">R</span>evisa el módulo de facturación antes del viernes y separa el texto parcial del confirmado<span class="add">.</span><span class="caret" aria-hidden="true"></span></p>
+          <p class="pasted-text">Necesito que revises el módulo de facturación antes del viernes y separa el texto parcial del confirmado<span class="add">.</span><span class="caret" aria-hidden="true"></span></p>
           <p class="copied"><span class="ok">✓  Copiado</span><span>Cmd-V para pegar</span></p>
         </div>
 
-        <p class="dek">Todo pasa en tu Mac. Tu voz no sale de ahí.</p>
+        <p class="dek">Dictado por voz para la terminal, 100&nbsp;% en tu Mac. Tu voz no sale de ahí.</p>
 
         <div class="act">
           <div class="btns">
@@ -75,7 +75,7 @@ const jsonLd = {
   <section id="sesion" aria-labelledby="t-sesion">
     <div class="wrap sec-head">
       <div>
-        <h2 id="t-sesion">Una sesión real</h2>
+        <h2 id="t-sesion">Así se ve una sesión</h2>
         <p class="lead">Esto es texto, no una captura: puedes seleccionarlo. El medidor dibuja puntos cuando hay silencio y barras cuando te oye. Lo confirmado se ve normal; lo que voz aún está pensando, más tenue.</p>
         <p class="small">Es una ilustración. Los tiempos y el texto dependen de lo que digas.</p>
         <dl class="notes">
@@ -99,7 +99,7 @@ const jsonLd = {
 
       <div id="p-hoy" role="tabpanel" aria-labelledby="tab-hoy"><InstallToday /></div>
 
-      <div id="p-pronto" role="tabpanel" aria-labelledby="tab-pronto" style="margin-top:48px">
+      <div id="p-pronto" role="tabpanel" aria-labelledby="tab-pronto">
         <div class="soon">
           <div>
             <h3>Una línea <span class="tag">próximamente</span></h3>
@@ -108,7 +108,7 @@ const jsonLd = {
           </div>
           <div>
             <h3>Homebrew <span class="tag">próximamente</span></h3>
-            <p class="note" style="margin-top:0">Instalar con <code>brew</code>, sin clonar nada. Sin fecha, también en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
+            <p class="note flush">Instalar con <code>brew</code>, sin clonar nada. Sin fecha, también en el <a href={ISSUE_ONE_LINE}>issue #12</a>.</p>
           </div>
         </div>
       </div>
@@ -120,8 +120,9 @@ const jsonLd = {
       <h2 id="t-priv">Tu voz no sale de tu Mac.</h2>
       <dl class="facts">
         <div><dt>Local</dt><dd>El audio y el texto se procesan en tu equipo. No hay cuentas, claves ni telemetría.</dd></div>
-        <div><dt>Sin conexión</dt><dd>Con el modelo ya descargado, voz no se conecta a nada. La única excepción es esa primera descarga, y te avisa antes.</dd></div>
-        <div><dt>Solo tuyo</dt><dd>Mientras grabas, el audio se guarda en <code>~/.local/state/voz/</code> (las últimas 5 sesiones) y solo tú puedes leerlo. Borra la carpeta cuando quieras.</dd></div>
+        <div><dt>Sin conexión</dt><dd>Con el modelo ya descargado y usando el comando <code>voz</code>, no abre conexiones. La red solo se usa para bajar un modelo: la primera vez (unos 1,6 GB), con <code>--accurate</code> (otros ~3 GB) o si eliges otro con <code>--model</code>. Te avisa antes.</dd></div>
+        <div><dt>Solo tuyo</dt><dd>Mientras grabas, el audio y el texto se guardan en <code>~/.local/state/voz/</code> (las últimas 5 sesiones) y solo tú puedes leerlos. Borra la carpeta cuando quieras.</dd></div>
+        <div><dt>Si grabas a otros</dt><dd>Pídeles permiso antes. Tú decides y respondes por ese uso. voz no envía nada a nadie, pero el audio y el texto quedan guardados en tu Mac.</dd></div>
         <div><dt>Abierto</dt><dd>Licencia MIT. El código es público: léelo, haz un fork, cámbialo.</dd></div>
       </dl>
     </div>
@@ -135,6 +136,17 @@ const jsonLd = {
         <a class="more" href="/cambios">Ver todas las versiones</a>
       </div>
       <ReleaseCard release={latest} mode="home" latest />
+    </div>
+  </section>
+
+  <section id="cierre" aria-labelledby="t-cierre">
+    <div class="wrap">
+      <h2 id="t-cierre">Instálalo en tu Mac</h2>
+      <p class="small">Apple Silicon · Python 3.12 · licencia MIT</p>
+      <div class="btns">
+        <a class="btn primary" href="/#instalar" data-open-install aria-haspopup="dialog">Cómo instalarlo</a>
+        <a class="btn" href={REPO}><GithubIcon />Ver en GitHub</a>
+      </div>
     </div>
   </section>
 

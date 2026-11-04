@@ -7,6 +7,7 @@ export const GET: APIRoute = async ({ site }) => {
   const urls = [
     { loc: `${base}/` },
     { loc: `${base}/cambios` },
+    { loc: `${base}/licencias` },
     ...releases.filter((r) => !r.unreleased).map((r) => ({ loc: `${base}/cambios/${r.version}`, lastmod: r.date })),
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

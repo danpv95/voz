@@ -35,6 +35,7 @@ import threading
 import time
 import wave
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 
@@ -329,3 +330,49 @@ def report_unfinished(stream=None) -> None:
                   f"   Audio: {wav}\n   Texto: {txt}\n"
                   f"   Re-transcribir completo:  voz \"{wav}\"", file=stream)
         stem.with_suffix(".lock").unlink(missing_ok=True)  # report once
+
+
+_DISCARD, _RESTORE = "[descartada]", "[restaurada]"   # marker lines written by Session.mark()
+
+
+class Recording(NamedTuple):
+    run: str          # 'sesion-20261103-120037'
+    n: int            # recording number inside the run (the N of -gN; legacy names are 1)
+    stem: Path
+    text: str
+
+
+def recordings() -> list[Recording]:
+    """Saved recordings that have text and are not discarded, newest first (the order is
+    the run id, which is a timestamp, then N as a number: g10 comes after g9).
+    Read-only: never creates, rewrites or prunes anything."""
+    if not STATE_DIR.exists():
+        return []
+    out = []
+    for txt in STATE_DIR.glob("sesion-*.txt"):
+        run = _run_of(txt.stem)
+        if not _RUN_RE.fullmatch(run):
+            continue
+        try:
+            lines = [ln.strip() for ln in txt.read_text(encoding="utf-8").splitlines()]
+        except (OSError, UnicodeDecodeError):
+            continue
+        markers = [ln for ln in lines if ln in (_DISCARD, _RESTORE)]
+        if markers and markers[-1] == _DISCARD:       # the last word wins (discard, undo, discard…)
+            continue
+        text = " ".join(ln for ln in lines if ln and ln not in (_DISCARD, _RESTORE))
+        if not text:
+            continue
+        n = int(txt.stem.rpartition("-g")[2]) if run != txt.stem else 1
+        out.append(Recording(run, n, txt.with_suffix(""), text))
+    out.sort(key=lambda r: (r.run, r.n), reverse=True)
+    return out
+
+
+def duration(rec: Recording) -> float | None:
+    """Seconds of the .wav (header only), None if it is missing or unreadable."""
+    try:
+        with wave.open(str(rec.stem.with_suffix(".wav"))) as w:
+            return w.getnframes() / w.getframerate()
+    except Exception:  # noqa: BLE001 - a truncated or absent file just means "unknown"
+        return None

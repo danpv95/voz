@@ -7,6 +7,7 @@ Modos:
   voz <archivo>      transcribe un archivo de audio (m4a/ogg/opus/mp3/wav)
   voz devices        lista los dispositivos de audio (debug)
   voz doctor         revisa la instalación (--mic prueba el micrófono)
+  voz copiar [N]     vuelve a copiar una grabación guardada (--todas, --lista, --stdout)
 """
 from __future__ import annotations
 
@@ -26,7 +27,7 @@ __version__ = "0.1.0"
 SILENCE_RMS = 1e-4
 MODEL_FAILED = 2  # exit code: the model could not be loaded (live mode)
 MIN_VOICE_SECONDS = 0.3
-COMMANDS = ("devices", "doctor")
+COMMANDS = ("devices", "doctor", "copiar")
 
 
 def _warn_silence() -> None:
@@ -95,6 +96,59 @@ def cmd_devices() -> int:
 
     print(sd.query_devices())
     return 0
+
+
+def cmd_copiar(args) -> int:
+    """Copy again a saved recording (the autosave folder keeps the last sessions)."""
+    import autosave
+    import flow
+
+    recs = autosave.recordings()
+    if not recs:
+        print(f"✖  No hay grabaciones guardadas en {autosave.STATE_DIR}.", file=sys.stderr)
+        return 1
+    if args.lista:
+        for i, r in enumerate(recs, 1):
+            secs = autosave.duration(r)
+            dur = f"{int(secs // 60)}:{int(secs % 60):02d}" if secs is not None else "-"
+            words = r.text.split()
+            head = " ".join(words[:6]) + ("…" if len(words) > 6 else "")
+            print(f"{i:>3}  {_when(r.run)}  g{r.n:<3} {dur:>6}  {len(words):>5} palabras  «{head}»")
+        return 0
+
+    if args.todas:
+        run = recs[0].run
+        mine = sorted((r for r in recs if r.run == run), key=lambda r: r.n)
+        text = flow.joined([flow.Take(r.n, r.text) for r in mine])
+        what = f"{len(mine)} grabación" + ("" if len(mine) == 1 else "es")
+    else:
+        k = int(args.number or 1)
+        if k > len(recs):
+            one = len(recs) == 1
+            print(f"✖  Solo hay {len(recs)} {'grabación guardada' if one else 'grabaciones guardadas'}; "
+                  f"pediste la {k}. Mira cuáles hay con: voz copiar --lista", file=sys.stderr)
+            return 1
+        r = recs[k - 1]
+        run, text, what = r.run, r.text, f"grabación {r.n}"
+    words = len(text.split())
+    where = f"sesión {_when(run)} · {what} · {words} palabras"
+    if args.stdout:
+        print(text)
+        print(f"✓  Impreso · {where}", file=sys.stderr)
+        return 0
+    if not output.to_clipboard(text):
+        print("✖  No se pudo copiar (pbcopy no disponible). Prueba: voz copiar --stdout", file=sys.stderr)
+        return 1
+    print(f"✓  Copiado · {where}", file=sys.stderr)
+    return 0
+
+
+def _when(run: str) -> str:
+    """'sesion-20261103-120037' → '2026-11-03 12:00' (what the user remembers)."""
+    import re
+
+    m = re.match(r"sesion-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})", run)
+    return f"{m[1]}-{m[2]}-{m[3]} {m[4]}:{m[5]}" if m else run
 
 
 def _interactive() -> bool:
@@ -276,6 +330,11 @@ teclas del modo en vivo:
                · c añadir · ⌫ descartar · u deshacer · s copiar (si lo pediste a mano)
   sin audio    ↵ reintentar · esc salir (el micrófono no entrega sonido)
 
+volver a copiar una grabación guardada:
+  voz copiar         la última (no descartada) · voz copiar 2 = la penúltima
+  --todas            toda la última sesión, unida · --lista las que hay, numeradas
+  --stdout           imprime en vez de copiar
+
 archivos y carpetas:
   ~/.config/voz/config.toml        ajustes (copiar = auto | preguntar | nunca · idioma principal = es | en)
   ~/.config/voz/corrections.toml   glosario de nombres propios
@@ -307,9 +366,10 @@ def build_parser() -> argparse.ArgumentParser:
         "target",
         nargs="?",
         default=None,
-        help="archivo de audio a transcribir, 'devices' o 'doctor'. "
+        help="archivo de audio a transcribir, 'devices', 'doctor' o 'copiar'. "
         "Sin argumento: dicta por micrófono.",
     )
+    parser.add_argument("number", nargs="?", default=None, help=argparse.SUPPRESS)  # voz copiar N
     parser.add_argument(
         "--loop",
         action="store_true",
@@ -352,6 +412,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="no recortar el silencio del inicio/fin del micrófono",
     )
     parser.add_argument(
+        "--todas", action="store_true", help="(copiar) toda la última sesión, unida"
+    )
+    parser.add_argument(
+        "--lista", action="store_true", help="(copiar) lista las grabaciones guardadas, numeradas"
+    )
+    parser.add_argument(
+        "--stdout", action="store_true", help="(copiar) imprime en vez de copiar al portapapeles"
+    )
+    parser.add_argument(
         "--srt", action="store_true", help="(archivo) escribe <audio>.srt con tiempos"
     )
     parser.add_argument(
@@ -372,6 +441,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     args = parser.parse_args(argv)
     args.model = ACCURATE_MODEL if args.accurate else (args.model or DEFAULT_MODEL)
     is_file = args.target is not None and args.target not in COMMANDS
+    if args.target != "copiar":
+        if args.number is not None:
+            parser.error(f"argumento no reconocido: {args.number}")
+        if args.todas or args.lista or args.stdout:
+            parser.error("--todas/--lista/--stdout solo funcionan con 'voz copiar'")
+    else:
+        if args.number is not None and not (args.number.isdigit() and int(args.number) >= 1):
+            parser.error("voz copiar espera un número de grabación (1 = la última, 2 = la penúltima)")
+        if args.lista and (args.number or args.todas or args.stdout):
+            parser.error("--lista se usa sola")
+        if args.todas and args.number:
+            parser.error("--todas une toda la última sesión; no se combina con un número")
     if (args.srt or args.json) and not is_file:
         parser.error("--srt/--json solo funcionan al transcribir un archivo")
     if args.loop and args.target is not None:
@@ -405,6 +486,9 @@ def main(argv: list[str] | None = None) -> int:
         import doctor
 
         return doctor.run(mic=args.mic)
+
+    if args.target == "copiar":
+        return cmd_copiar(args)
 
     rules = corrections.load()
     if not args.target:  # mic modes: a previous session that died left its files behind

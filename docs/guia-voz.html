@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>voz: guía completa (v0.1.0)</title>
+<title>voz: guía completa (v0.1.1)</title>
 <style>
 :root{--accent:#0e7490;--ink:#1d242b;--muted:#5a6672;--line:#d9e0e6;--soft:#f2f6f8;--code:#eef2f5;--warn:#9a5b00;--warnbg:#fff6e5}
 *{box-sizing:border-box}
@@ -81,14 +81,14 @@ td code{font-size:.92em}
 
 <section class="cover">
   <div class="top">
-    <div class="kicker">Guía completa · v0.1.0</div>
+    <div class="kicker">Guía completa · v0.1.1</div>
     <h1 class="title">voz</h1>
     <div class="sub">Dictado por voz para la terminal, local y sin nube. Arquitectura, uso y mantenimiento.</div>
     <div class="lead">Para quien quiere entender cómo funciona por dentro, mantenerlo o hacer un fork. Documenta lo que el código hace hoy, con los datos medidos detrás de cada decisión.</div>
   </div>
   <div class="meta">
     <div><b>Autor</b><br>Daniel Patiño Vargas<br>Colombia</div>
-    <div><b>Versión</b><br>0.1.0<br>29 de octubre de 2026</div>
+    <div><b>Versión</b><br>0.1.1<br>4 de noviembre de 2026</div>
     <div><b>Plataforma</b><br>macOS, Apple Silicon<br>Python 3.12</div>
     <div><b>Licencia</b><br>MIT</div>
   </div>
@@ -208,7 +208,7 @@ voz doctor                                 # verificación sin red</code></pre>
 <tr><td><code>voz doctor</code></td><td>Revisa Python, módulos, modelos (disponible, incompleto si faltan los pesos, o sin descargar), ffmpeg (aviso si falta), micrófono por defecto, glosario y el comando <code>voz</code>. Sin red. Con <code>--mic</code> graba 1 s y mide el nivel.</td></tr>
 <tr><td><code>voz copiar [N]</code></td><td>Vuelve a copiar al portapapeles una grabación guardada en la carpeta de estado (la última no descartada; <code>N</code> cuenta de la más nueva a la más vieja). <code>--lista</code> las muestra numeradas, <code>--todas</code> une las de la última sesión y <code>--stdout</code> imprime en vez de copiar. Solo lee: no escribe nada.</td></tr>
 <tr><td><code>voz devices</code></td><td>Imprime la lista de dispositivos de audio que ve PortAudio (<code>sounddevice.query_devices()</code>). Sirve para depurar.</td></tr>
-<tr><td><code>voz --version</code></td><td>Imprime <code>voz 0.1.0</code> y sale.</td></tr>
+<tr><td><code>voz --version</code></td><td>Imprime <code>voz 0.1.1</code> y sale.</td></tr>
 </tbody></table>
 
 <h2 id="h2">3.2 Banderas</h2>

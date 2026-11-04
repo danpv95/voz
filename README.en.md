@@ -3,7 +3,7 @@
 ![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)
 ![platform macOS Apple Silicon](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey.svg)
-![version 0.1.0](https://img.shields.io/badge/version-0.1.0-informational.svg)
+![version 0.1.1](https://img.shields.io/badge/version-0.1.1-informational.svg)
 
 Website: [voz-cli.vercel.app](https://voz-cli.vercel.app) (what it looks like, how to install it and what changed in each version)
 
@@ -21,7 +21,7 @@ We wanted to dictate to a coding agent without sending audio to the cloud and wi
 
 People who live in the terminal on a Mac with Apple Silicon (M1 or later) and want to dictate without their voice leaving the machine. We use it mostly in Spanish, and with `--lang auto` it keeps the session's language: it starts with your primary language (Spanish by default, see [Primary language](#primary-language)) and only switches on strong evidence. Mixing Spanish and English in one session still works when the change is clear and you pause between them.
 
-**Status: v0.1.0.** It works and we use it every day, but it is an early release with known rough edges (see [Limitations](#limitations)). macOS on Apple Silicon only, for now.
+**Status: v0.1.1.** It works and we use it every day, but it is an early release with known rough edges (see [Limitations](#limitations)). macOS on Apple Silicon only, for now.
 
 ## What a session looks like
 

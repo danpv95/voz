@@ -22,7 +22,7 @@ import corrections  # noqa: E402
 import output  # noqa: E402
 from stt import ACCURATE_MODEL, DEFAULT_MODEL, transcribe, transcribe_segments  # noqa: E402
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 SILENCE_RMS = 1e-4
 MODEL_FAILED = 2  # exit code: the model could not be loaded (live mode)

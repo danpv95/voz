@@ -50,7 +50,7 @@ const shown = tipo ? releases.filter((r) => !r.unreleased && r.sections.some((s)
       <p class="meta">{r.unreleased
         ? `Sin fecha${r.target ? ` · apunta a ${r.target}` : ''}`
         : (r.date ? formatDate(r.date) : 'Sin fecha')}</p>
-      {r.intro[0] && <p class="lead" style="margin-top:12px">{r.intro[0]}</p>}
+      {r.intro[0] && <p class="lead tight">{r.intro[0]}</p>}
       <p class="counts">{r.sections.map((s) => `${s.title} ${s.items.length}`).join(' · ')}</p>
       <ul class="hl">{r.highlights.map((h) => <li>{h}</li>)}</ul>
       <ul class="links">

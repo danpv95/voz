@@ -8,4 +8,6 @@ export default defineConfig({
   trailingSlash: 'never',
   compressHTML: true,
   devToolbar: { enabled: false },
+  // Sin scripts inline: la CSP del sitio (vercel.json) es `script-src 'self'`.
+  vite: { build: { assetsInlineLimit: 0 } },
 });

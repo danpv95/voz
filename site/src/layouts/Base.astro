@@ -25,8 +25,10 @@ const og = new URL('/og.png', Astro.site).href;
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title}</title>
   <meta name="description" content={description}>
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#FBFBFC">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#FBFBFC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1C222D" media="(prefers-color-scheme: dark)">
+  <script is:inline src="/theme-init.js"></script>
   {noindex && <meta name="robots" content="noindex, follow">}
   <link rel="canonical" href={canonical}>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -49,7 +51,7 @@ const og = new URL('/og.png', Astro.site).href;
 </head>
 <body>
   <a class="skip" href="#contenido">Saltar al contenido</a>
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
     <symbol id="medidor" viewBox="0 0 60 20">
       <g fill="var(--dot)"><circle cx="3" cy="10" r="1.8"/><circle cx="9" cy="10" r="1.8"/><circle cx="15" cy="10" r="1.8"/><circle cx="21" cy="10" r="1.8"/><circle cx="27" cy="10" r="1.8"/><circle cx="51" cy="10" r="1.8"/><circle cx="57" cy="10" r="1.8"/></g>
       <g fill="var(--blue)"><rect x="31.2" y="6" width="3.6" height="8" rx="1.8"/><rect x="37.2" y="3" width="3.6" height="14" rx="1.8"/><rect x="43.2" y="6" width="3.6" height="8" rx="1.8"/></g>

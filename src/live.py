@@ -26,6 +26,40 @@ PREROLL_MS = 300      # audio kept before the first voiced frame (soft onsets)
 HISTORY_S = 5.0       # rolling window for the adaptive threshold
 MIN_HISTORY_MS = 300  # don't call anything "voice" before this much context
 FINISH_TIMEOUT_S = 20.0  # how long closing waits for pending chunks to be transcribed
+# A chunk whose loudest 30 ms frame (raw RMS) stays below this is never sent to Whisper.
+# Audited on a 12 min meeting: 11 chunks under 0.015 were all invented sentences, while the
+# quietest real speech chunk peaked at 0.021 (one session only, so the margin is thin: that is
+# why a gated chunk is counted and logged, and the WAV autosave keeps the audio).
+MIN_CHUNK_PEAK = 0.015
+DIAG_ENV = "VOZ_DIAG"  # =1: one line per chunk (no text) appended to <state dir>/diag.log
+
+
+def chunk_peak(chunk: np.ndarray) -> float:
+    """Loudest FRAME_MS frame of `chunk` as raw RMS (same measure as Segmenter.peak_level)."""
+    x = np.asarray(chunk, dtype="float32").ravel()
+    frame = int(SAMPLE_RATE * FRAME_MS / 1000)
+    n = len(x) // frame
+    if n == 0:
+        return float(np.sqrt(np.mean(np.square(x)))) if x.size else 0.0
+    frames = x[: n * frame].reshape(n, frame)
+    return float(np.sqrt(np.mean(np.square(frames), axis=1)).max())
+
+
+def diag(line: str) -> None:
+    """Per-chunk diagnostics when VOZ_DIAG is set. File only (the TTY UI owns stderr and
+    stdout is the transcript); never raises."""
+    import os
+
+    if not os.environ.get(DIAG_ENV):
+        return
+    try:
+        import autosave
+
+        autosave.STATE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(autosave.STATE_DIR / "diag.log", "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} {line}\n")
+    except Exception:  # noqa: BLE001 - diagnostics must never break a recording
+        pass
 
 
 class Segmenter:
@@ -202,6 +236,7 @@ class LiveSession:
         self.parts: list[str] = []
         self.error: Exception | None = None  # fatal: model could not load
         self.failed_chunks = 0
+        self.gated = 0                       # chunks too quiet to transcribe (MIN_CHUNK_PEAK)
         self._warn = warn                    # False in the TTY UI: it shows failed_chunks instead
         self._warm = warm
         self._echo = echo                    # print committed text to stdout as it comes
@@ -269,6 +304,8 @@ class LiveSession:
         if audio is None:
             return
         n = len(audio)
+        if chunk_peak(audio) < MIN_CHUNK_PEAK:
+            return   # same gate as final chunks: no provisional text invented on silence
         # wait for at least as much new audio as the last guess cost (×1.2), so the
         # worker never spends all its time re-guessing and finals never queue up
         step = max(self.PARTIAL_STEP_S, 1.2 * self._partial_cost)
@@ -293,6 +330,13 @@ class LiveSession:
         self.partial = self._apply(text, self._rules).strip() if text else ""
 
     def _handle(self, chunk) -> None:
+        secs, peak = len(chunk) / SAMPLE_RATE, chunk_peak(chunk)
+        if peak < MIN_CHUNK_PEAK:
+            self.gated += 1
+            self.partial, self._partial_len = "", 0
+            diag(f"gated secs={secs:.1f} peak={peak:.4f} lang={self._current_lang()}")
+            return
+        prev_lang = self._lang_state.current if self._lang_state is not None else None
         try:
             extra = {"lang_state": self._lang_state} if self._lang_state is not None else {}
             text = self._transcribe(chunk, model=self._model, language=self._lang, **extra)
@@ -304,7 +348,14 @@ class LiveSession:
             return
         text = self._apply(text, self._rules).strip() if text else ""
         self.partial, self._partial_len = "", 0
-        if text and self.parts and _repeats_last_sentence(text, self.parts[-1]):
+        loop = bool(text and self.parts and _repeats_last_sentence(text, self.parts[-1]))
+        diag(f"{'accepted' if text and not loop else 'dropped'} secs={secs:.1f} peak={peak:.4f} "
+             f"lang={self._current_lang()} chars={len(text)}{' loop' if loop else ''}")
+        if not text or loop:
+            # stt already moved the language when it kept segments; a chunk that is not
+            # accepted here (empty after corrections, or a cross-chunk loop) must not keep it
+            if self._lang_state is not None:
+                self._lang_state.current = prev_lang
             return  # Whisper loop across chunks (music, long silence): keep the first copy
         if text:
             sep = " " if self.parts else ""
@@ -317,6 +368,9 @@ class LiveSession:
             if self._echo:
                 sys.stdout.write(sep + text)
                 sys.stdout.flush()
+
+    def _current_lang(self) -> str:
+        return (self._lang_state.current if self._lang_state is not None else self._lang) or "-"
 
     @property
     def committed(self) -> str:

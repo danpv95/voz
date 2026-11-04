@@ -14,7 +14,7 @@ def p(es, en):
     return {"es": es, "en": en}
 
 
-def run_chunks(monkeypatch, detections):
+def run_chunks(monkeypatch, detections, secs=3.0):
     """Feed one chunk per detection through LiveSession + real transcribe_segments,
     with a mocked detector and a fake mlx_whisper. Returns the language used per chunk."""
     probs = iter(detections)
@@ -29,7 +29,7 @@ def run_chunks(monkeypatch, detections):
     monkeypatch.setitem(sys.modules, "mlx_whisper", types.SimpleNamespace(transcribe=fake_transcribe))
     s = LiveSession(stt.transcribe, [], lambda t, r: t, "m", "auto", warm=False, echo=False)
     for _ in detections:
-        s.submit(np.full(16000, 0.1, dtype="float32"))
+        s.submit(np.full(int(16000 * secs), 0.1, dtype="float32"))
     s.finish()
     return used
 
@@ -40,6 +40,27 @@ def test_weak_english_detection_keeps_spanish(monkeypatch):
 
 def test_strong_english_switches(monkeypatch):
     assert run_chunks(monkeypatch, [p(0.9, 0.05), p(0.02, 0.95)]) == ["es", "en"]
+
+
+def test_short_chunk_never_leaves_the_primary_language(monkeypatch):
+    # 1.5 s with p(en) 0.95 would pass SWITCH_MIN: too short to trust (issue #7)
+    assert run_chunks(monkeypatch, [p(0.9, 0.05), p(0.02, 0.95)], secs=1.5) == ["es", "es"]
+
+
+def test_short_chunk_can_still_come_back_to_the_primary(monkeypatch):
+    seq = [p(0.9, 0.05), p(0.02, 0.95), p(0.9, 0.05)]
+    assert run_chunks(monkeypatch, seq, secs=3.0)[2] == "es"
+    st = LangState()
+    st.current = "en"
+    assert st.choose(p(0.9, 0.05), seconds=0.8) == "es"
+
+
+def test_choose_duration_floor_is_inclusive_and_optional():
+    st = LangState()
+    st.current = "es"
+    assert st.choose(p(0.02, 0.95), seconds=2.99) == "es"
+    assert st.choose(p(0.02, 0.95), seconds=3.0) == "en"
+    assert st.choose(p(0.02, 0.95)) == "en"     # unknown duration (file path): no floor
 
 
 def test_weak_first_chunk_seeds_the_primary_language(monkeypatch):

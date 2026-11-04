@@ -354,6 +354,10 @@ SWITCH_MIN = 0.80     # leave the primary if the new language alone reaches this
 SWITCH_MARGIN = 0.50  # ...or if it beats the current language by this much (e.g. en 0.70 vs es 0.15)
 BACK_MIN = 0.60       # return to the primary with this probability...
 BACK_MARGIN = 0.25    # ...or with this margin over the current language
+# Leaving the primary also needs a chunk long enough to detect reliably. Audited on a
+# 12 min meeting: 1.5 s chunks with p(en) 0.69 flipped the session to English 17 times
+# and Whisper then invented English sentences. Going back to the primary has no such floor.
+SWITCH_MIN_S = 3.0
 _EPS = 1e-9           # probabilities are floats: 0.7 - 0.2 is 0.4999999999999999
 
 
@@ -375,7 +379,8 @@ class LangState:
         self.primary = primary if primary in self.allowed else self.allowed[0]
         self.current: str | None = None
 
-    def choose(self, probs: dict) -> str:
+    def choose(self, probs: dict, seconds: float | None = None) -> str:
+        """Language for a chunk of `seconds` (None = unknown, no duration check)."""
         best = _pick_language(probs, self.allowed)
         p_best = probs.get(best, 0.0)
         if self.current is None:
@@ -385,6 +390,8 @@ class LangState:
             return best
         p_cur = probs.get(self.current, 0.0)
         need_min, need_margin = (BACK_MIN, BACK_MARGIN) if best == self.primary else (SWITCH_MIN, SWITCH_MARGIN)
+        if best != self.primary and seconds is not None and seconds < SWITCH_MIN_S:
+            return self.current   # too short to trust a departure from the primary
         if p_best >= need_min - _EPS or p_best - p_cur >= need_margin - _EPS:
             return best
         return self.current
@@ -433,7 +440,15 @@ def transcribe_segments(
     def run():
         if language == "auto":
             probs = detect_language_probs(audio, model)
-            opts["language"] = lang_state.choose(probs) if lang_state else _pick_language(probs)
+            if lang_state:
+                import numpy as np
+
+                from record import SAMPLE_RATE
+
+                seconds = len(audio) / SAMPLE_RATE if isinstance(audio, np.ndarray) else None
+                opts["language"] = lang_state.choose(probs, seconds)
+            else:
+                opts["language"] = _pick_language(probs)
         return mlx_whisper.transcribe(audio, **opts)
 
     try:

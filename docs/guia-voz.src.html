@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>voz: guía completa (v0.1.0)</title>
+<title>voz: guía completa (v0.1.1)</title>
 <style>
 :root{--accent:#0e7490;--ink:#1d242b;--muted:#5a6672;--line:#d9e0e6;--soft:#f2f6f8;--code:#eef2f5;--warn:#9a5b00;--warnbg:#fff6e5}
 *{box-sizing:border-box}
@@ -81,14 +81,14 @@ td code{font-size:.92em}
 
 <section class="cover">
   <div class="top">
-    <div class="kicker">Guía completa · v0.1.0</div>
+    <div class="kicker">Guía completa · v0.1.1</div>
     <h1 class="title">voz</h1>
     <div class="sub">Dictado por voz para la terminal, local y sin nube. Arquitectura, uso y mantenimiento.</div>
     <div class="lead">Para quien quiere entender cómo funciona por dentro, mantenerlo o hacer un fork. Documenta lo que el código hace hoy, con los datos medidos detrás de cada decisión.</div>
   </div>
   <div class="meta">
     <div><b>Autor</b><br>Daniel Patiño Vargas<br>Colombia</div>
-    <div><b>Versión</b><br>0.1.0<br>29 de octubre de 2026</div>
+    <div><b>Versión</b><br>0.1.1<br>4 de noviembre de 2026</div>
     <div><b>Plataforma</b><br>macOS, Apple Silicon<br>Python 3.12</div>
     <div><b>Licencia</b><br>MIT</div>
   </div>
@@ -163,8 +163,9 @@ voz doctor                                 # verificación sin red</code></pre>
 <tr><td><code>voz</code></td><td>Dicta por el micrófono con transcripción en vivo y copia al terminar.</td></tr>
 <tr><td><code>voz &lt;archivo&gt;</code></td><td>Transcribe un archivo de audio (m4a, ogg, opus, mp3, wav; lo que ffmpeg decodifique).</td></tr>
 <tr><td><code>voz doctor</code></td><td>Revisa Python, módulos, modelos (disponible, incompleto si faltan los pesos, o sin descargar), ffmpeg (aviso si falta), micrófono por defecto, glosario y el comando <code>voz</code>. Sin red. Con <code>--mic</code> graba 1 s y mide el nivel.</td></tr>
+<tr><td><code>voz copiar [N]</code></td><td>Vuelve a copiar al portapapeles una grabación guardada en la carpeta de estado (la última no descartada; <code>N</code> cuenta de la más nueva a la más vieja). <code>--lista</code> las muestra numeradas, <code>--todas</code> une las de la última sesión y <code>--stdout</code> imprime en vez de copiar. Solo lee: no escribe nada.</td></tr>
 <tr><td><code>voz devices</code></td><td>Imprime la lista de dispositivos de audio que ve PortAudio (<code>sounddevice.query_devices()</code>). Sirve para depurar.</td></tr>
-<tr><td><code>voz --version</code></td><td>Imprime <code>voz 0.1.0</code> y sale.</td></tr>
+<tr><td><code>voz --version</code></td><td>Imprime <code>voz 0.1.1</code> y sale.</td></tr>
 </tbody></table>
 
 <h2>3.2 Banderas</h2>
@@ -265,7 +266,9 @@ voz nota.m4a                        # transcribir un audio
 voz reunion.m4a --srt --json        # y escribir reunion.srt y reunion.json
 voz reunion.m4a --no-copy &gt; r.txt   # solo stdout, a un archivo
 VOZ_UI=simple voz -y                # flujo simple, copia sin preguntar
-voz doctor --mic                    # diagnóstico, con prueba de micrófono</code></pre>
+voz doctor --mic                    # diagnóstico, con prueba de micrófono
+voz copiar --lista                  # grabaciones guardadas, numeradas
+voz copiar 2                        # recupera la penúltima al portapapeles</code></pre>
 
 <h1 id="s4">4. Arquitectura</h1>
 <p>El código vive en <code>src/</code> como módulos planos. <code>bin/voz</code> lanza <code>src/voz.py</code>, que añade su carpeta al <code>sys.path</code>, por eso los módulos se importan entre sí por nombre (<code>import stt</code>). Los imports pesados (MLX, sounddevice, SciPy) son perezosos para que <code>--help</code> y <code>voz devices</code> arranquen al instante.</p>
@@ -353,6 +356,7 @@ voz doctor --mic                    # diagnóstico, con prueba de micrófono</co
 <ul>
   <li><code>Segmenter.feed / current / flush</code>: recibe bloques de cualquier tamaño y devuelve tramos terminados. Mide energía por cuadros de 30 ms sobre la banda de voz con un umbral adaptativo sobre los últimos 5 s. Cierra un tramo tras 700 ms de silencio (mínimo 0,6 s), o a los 12 s con corte suave en el cuadro más silencioso del último 1,5 s. Conserva 300 ms previos al primer cuadro con voz. Los tramos que emite son el audio original, no el filtrado.</li>
   <li><code>LiveSession</code>: un único hilo trabajador es dueño del modelo. Carga el modelo (calentamiento) mientras el usuario pulsa la primera tecla, transcribe los tramos que llegan por una cola y, entre tramos, hace transcripciones parciales del tramo en curso (<code>PARTIAL_MIN_S</code> 0,8 s; espera audio nuevo equivalente a 1,2 veces lo que costó la anterior). Expone <code>submit</code>, <code>hold</code>/<code>release</code>, <code>drain</code> (esperar sin cerrar el hilo), <code>finish</code>, <code>committed</code>, <code>partial</code>, <code>failed_chunks</code>, <code>error</code>, <code>ready</code>.</li>
+  <li>Puerta de silencio: un tramo cuyo pico (el mayor RMS de cuadro de 30 ms) queda bajo <code>MIN_CHUNK_PEAK</code> (0,015) no se manda a Whisper, que ante ruido o silencio inventa texto (a veces en inglés). Los parciales usan la misma puerta. Con <code>VOZ_DIAG=1</code>, cada tramo deja una línea (descartado, aceptado, segundos, pico, idioma, nº de caracteres; nunca el texto) en <code>diag.log</code> dentro de la carpeta de estado.</li>
   <li><code>record_live</code> y <code>decide_copy</code>: el flujo simple.</li>
 </ul>
 <div class="k">Archivo</div><p><code>src/live.py</code></p>
@@ -580,10 +584,14 @@ principal = "es"       # es | en</code></pre>
 <tr><td><code>NO_COLOR</code></td><td>tú</td><td>Quita los colores; el texto provisional se marca con ‹ ›.</td></tr>
 <tr><td><code>VOZ_CONFIG</code></td><td>tú</td><td>Otra ruta para <code>config.toml</code>.</td></tr>
 <tr><td><code>VOZ_STATE_DIR</code></td><td>tú</td><td>Otra carpeta para las grabaciones a salvo (útil en pruebas).</td></tr>
+<tr><td><code>VOZ_DIAG=1</code></td><td>tú</td><td>Diagnóstico en vivo: una línea por tramo (sin texto) en <code>diag.log</code> de la carpeta de estado. Sirve para calibrar la puerta de silencio.</td></tr>
 </tbody></table>
 
 <h2>7.5 Recuperar una sesión</h2>
 <p>Si <code>voz</code> murió sin cerrar bien, el siguiente arranque en modo micrófono imprime algo como la ruta del <code>.wav</code>, la del <code>.txt</code> y el comando <code>voz "&lt;ruta&gt;.wav"</code> para re-transcribirlo completo. Se avisa una sola vez por sesión.</p>
+
+<h2>7.6 Recuperar el texto con <code>voz copiar</code></h2>
+<p>Si cerraste la terminal o copiaste otra cosa encima, <code>voz copiar --lista</code> muestra las grabaciones guardadas en las últimas 5 sesiones (fecha, duración, palabras y el comienzo de cada una), y <code>voz copiar N</code> copia la número N. Salta las descartadas y no modifica ningún archivo.</p>
 
 <h1 id="s8">8. Tests y benchmarks</h1>
 

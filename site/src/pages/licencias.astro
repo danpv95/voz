@@ -1,0 +1,50 @@
+---
+import Base from '../layouts/Base.astro';
+import { LICENSE_URL, REPO } from '../lib/site.ts';
+---
+<Base
+  title="Licencias y avisos · voz"
+  description="Licencia de voz, atribuciones de Whisper, mlx-whisper y la fuente Fraunces, y avisos sobre garantías, grabaciones y marcas."
+  path="/licencias"
+>
+  <div class="wrap pad-end">
+    <div class="page-head">
+      <h1>Licencias y avisos</h1>
+      <p>voz es software libre con licencia MIT. Aquí están las licencias de lo que usa y los avisos que corresponden.</p>
+    </div>
+
+    <section class="rel-sec" aria-labelledby="l-voz">
+      <h2 id="l-voz">voz</h2>
+      <p>Copyright © 2026 Daniel Patiño Vargas. Licencia MIT. <a href={LICENSE_URL}>Texto completo</a> · <a href={REPO}>Código</a>.</p>
+    </section>
+
+    <section class="rel-sec" aria-labelledby="l-tal">
+      <h2 id="l-tal">Tal cual</h2>
+      <p>voz se entrega tal cual, sin garantías, bajo licencia MIT. Las transcripciones pueden tener errores: revísalas antes de usarlas.</p>
+      <p>Si grabas o transcribes a otras personas, pídeles permiso antes. Tú decides y respondes por ese uso.</p>
+    </section>
+
+    <section class="rel-sec" aria-labelledby="l-usa">
+      <h2 id="l-usa">Lo que usa voz</h2>
+      <dl class="facts">
+        <div><dt>Whisper</dt><dd>Modelo de reconocimiento de voz. © OpenAI, licencia MIT. <a href="https://github.com/openai/whisper">github.com/openai/whisper</a></dd></div>
+        <div><dt>mlx-whisper</dt><dd>Ejecuta Whisper en Apple Silicon. © MLX Contributors, licencia MIT. <a href="https://github.com/ml-explore/mlx-examples">github.com/ml-explore/mlx-examples</a></dd></div>
+        <div><dt>Pesos del modelo</dt><dd>Conversiones de Whisper a MLX publicadas por mlx-community en <a href="https://huggingface.co/mlx-community">Hugging Face</a>. Por defecto <code>whisper-large-v3-turbo</code>; con <code>--accurate</code>, <code>whisper-large-v3-mlx</code>. Consulta la ficha de cada repositorio para ver su licencia. Se descargan al usarlos, no van dentro de voz.</dd></div>
+        <div><dt>Dependencias</dt><dd>mlx (MIT), sounddevice (MIT), numpy (BSD-3-Clause y otras permisivas), huggingface_hub (Apache-2.0), torch (BSD-3-Clause) y otras. Se instalan aparte con pip y mantienen sus propias licencias.</dd></div>
+      </dl>
+    </section>
+
+    <section class="rel-sec" aria-labelledby="l-sitio">
+      <h2 id="l-sitio">Este sitio</h2>
+      <dl class="facts">
+        <div><dt>Fraunces</dt><dd>Copyright 2020 The Fraunces Project Authors, licencia SIL Open Font License 1.1 (<a href="https://openfontlicense.org">openfontlicense.org</a>). Subconjunto latino, alojado en este sitio. <a href="/fonts/OFL.txt">Texto de la licencia</a></dd></div>
+        <div><dt>Icono de GitHub</dt><dd>Octicon de Primer (© GitHub, licencia MIT). Se usa sin cambios, solo para enlazar a GitHub.</dd></div>
+      </dl>
+    </section>
+
+    <section class="rel-sec" aria-labelledby="l-marcas">
+      <h2 id="l-marcas">Marcas</h2>
+      <p>Apple, macOS y Apple Silicon son marcas de Apple Inc. GitHub es marca de GitHub, Inc. Claude y Claude Code son marcas de Anthropic. Whisper y OpenAI son marcas de OpenAI. Se nombran solo para indicar compatibilidad. voz es independiente y no está afiliado ni respaldado por ellas.</p>
+    </section>
+  </div>
+</Base>

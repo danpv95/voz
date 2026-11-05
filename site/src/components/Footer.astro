@@ -20,9 +20,11 @@ const guide = await getGuide(v);
         {!guide && <li><a href={tagUrl(v)}>Release {v}</a></li>}
         <li><a href={CHANGELOG_URL}>CHANGELOG</a></li>
         <li><a href={LICENSE_URL}>Licencia MIT</a></li>
+        <li><a href="/licencias">Licencias y avisos</a></li>
         <li><a href="/cambios">Novedades</a></li>
         <li><a href="/feed.xml">RSS</a></li>
       </ul>
+      <p class="credit">voz se entrega tal cual, sin garantías, bajo licencia MIT. Las transcripciones pueden tener errores: revísalas antes de usarlas.</p>
       <p class="credit">Lo construimos Daniel y Claude (IA de Anthropic) en colaboración.</p>
     </div>
   </div>

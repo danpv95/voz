@@ -3,7 +3,7 @@
 ![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)
 ![platform macOS Apple Silicon](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey.svg)
-![version 0.1.0](https://img.shields.io/badge/version-0.1.0-informational.svg)
+![version 0.1.1](https://img.shields.io/badge/version-0.1.1-informational.svg)
 
 Web: [voz-cli.vercel.app](https://voz-cli.vercel.app) (cómo se ve, cómo instalarlo y qué cambió en cada versión)
 
@@ -21,7 +21,7 @@ Queríamos dictarle a un agente de código sin mandar el audio a la nube y sin p
 
 Para quien vive en la terminal en un Mac con chip Apple Silicon (M1 o posterior) y quiere dictar sin sacar su voz del equipo. Si además escribes en español, mejor: es el idioma con el que más lo hemos usado. Con `--lang auto` mantiene el idioma de la sesión, empieza por tu idioma principal (español por defecto, ver [Idioma principal](#idioma-principal)) y solo cambia con evidencia fuerte.
 
-**Estado: v0.1.0.** Funciona y lo usamos a diario, pero es una versión temprana con aristas conocidas (ver [Limitaciones](#limitaciones)). Solo macOS en Apple Silicon por ahora.
+**Estado: v0.1.1.** Funciona y lo usamos a diario, pero es una versión temprana con aristas conocidas (ver [Limitaciones](#limitaciones)). Solo macOS en Apple Silicon por ahora.
 
 ## Cómo se ve una sesión
 
@@ -126,12 +126,25 @@ voz reunion.m4a --srt       # además escribe reunion.srt con tiempos
 voz reunion.m4a --json      # y/o reunion.json con los segmentos
 voz nota.ogg --no-copy > nota.txt   # solo stdout, nada al portapapeles
 
+voz copiar                  # vuelve a copiar la última grabación guardada
+voz copiar 2                # la penúltima (voz copiar --lista las muestra numeradas)
 voz doctor                  # diagnóstico sin red (voz doctor --mic graba 1 s)
 voz devices                 # lista los dispositivos de audio
 voz --version
 ```
 
 `voz` imprime en stdout solo la transcripción. Todo lo demás (estado, avisos) va a stderr, así que `voz archivo.m4a | pbcopy` o redirigir a un archivo funcionan limpios. Los `--srt` y `--json` nunca sobrescriben: si ya existen, crean `reunion-1.srt`, `reunion-2.srt`, etc.
+
+**Si perdiste el texto** (cerraste la terminal, copiaste otra cosa encima), `voz copiar` lo recupera de `~/.local/state/voz`, donde `voz` guarda las últimas 5 sesiones. Cuenta las grabaciones de la más reciente a la más antigua y se salta las descartadas:
+
+```bash
+voz copiar --lista          # fecha, duración, palabras y el comienzo de cada una, numeradas
+voz copiar 3                # la tercera de esa lista
+voz copiar --todas          # todas las grabaciones de la última sesión, unidas
+voz copiar --stdout | less  # imprime en vez de copiar
+```
+
+Dice por stderr qué copió (`✓ Copiado · sesión 2026-11-03 12:00 · grabación 2 · 41 palabras`). No guarda nada nuevo ni toca los archivos.
 
 Banderas principales:
 

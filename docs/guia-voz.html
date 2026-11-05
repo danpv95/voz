@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>voz: guía completa (v0.1.0)</title>
+<title>voz: guía completa (v0.1.1)</title>
 <style>
 :root{--accent:#0e7490;--ink:#1d242b;--muted:#5a6672;--line:#d9e0e6;--soft:#f2f6f8;--code:#eef2f5;--warn:#9a5b00;--warnbg:#fff6e5}
 *{box-sizing:border-box}
@@ -81,14 +81,14 @@ td code{font-size:.92em}
 
 <section class="cover">
   <div class="top">
-    <div class="kicker">Guía completa · v0.1.0</div>
+    <div class="kicker">Guía completa · v0.1.1</div>
     <h1 class="title">voz</h1>
     <div class="sub">Dictado por voz para la terminal, local y sin nube. Arquitectura, uso y mantenimiento.</div>
     <div class="lead">Para quien quiere entender cómo funciona por dentro, mantenerlo o hacer un fork. Documenta lo que el código hace hoy, con los datos medidos detrás de cada decisión.</div>
   </div>
   <div class="meta">
     <div><b>Autor</b><br>Daniel Patiño Vargas<br>Colombia</div>
-    <div><b>Versión</b><br>0.1.0<br>29 de octubre de 2026</div>
+    <div><b>Versión</b><br>0.1.1<br>4 de noviembre de 2026</div>
     <div><b>Plataforma</b><br>macOS, Apple Silicon<br>Python 3.12</div>
     <div><b>Licencia</b><br>MIT</div>
   </div>
@@ -102,44 +102,45 @@ td code{font-size:.92em}
     <a class="t1" href="#s3"><span class="tt">3. Uso completo</span><span class="dots"></span><span class="pn">4</span></a>
     <a class="t2" href="#h1"><span class="tt">3.1 Comandos</span><span class="dots"></span><span class="pn">4</span></a>
     <a class="t2" href="#h2"><span class="tt">3.2 Banderas</span><span class="dots"></span><span class="pn">5</span></a>
-    <a class="t2" href="#h3"><span class="tt">3.3 Combinaciones que el parser rechaza</span><span class="dots"></span><span class="pn">5</span></a>
+    <a class="t2" href="#h3"><span class="tt">3.3 Combinaciones que el parser rechaza</span><span class="dots"></span><span class="pn">6</span></a>
     <a class="t2" href="#h4"><span class="tt">3.4 Códigos de salida</span><span class="dots"></span><span class="pn">6</span></a>
     <a class="t2" href="#h5"><span class="tt">3.5 Interfaz y teclas del modo en vivo</span><span class="dots"></span><span class="pn">6</span></a>
     <a class="t2" href="#h6"><span class="tt">3.6 Tres formas de usar el micrófono</span><span class="dots"></span><span class="pn">7</span></a>
-    <a class="t2" href="#h7"><span class="tt">3.7 Ejemplos</span><span class="dots"></span><span class="pn">7</span></a>
+    <a class="t2" href="#h7"><span class="tt">3.7 Ejemplos</span><span class="dots"></span><span class="pn">8</span></a>
     <a class="t1" href="#s4"><span class="tt">4. Arquitectura</span><span class="dots"></span><span class="pn">8</span></a>
     <a class="t2" href="#m1"><span class="tt">4.1 voz.py · CLI y orquestación</span><span class="dots"></span><span class="pn">8</span></a>
-    <a class="t2" href="#m2"><span class="tt">4.2 record.py · captura y detección de voz</span><span class="dots"></span><span class="pn">8</span></a>
+    <a class="t2" href="#m2"><span class="tt">4.2 record.py · captura y detección de voz</span><span class="dots"></span><span class="pn">9</span></a>
     <a class="t2" href="#m3"><span class="tt">4.3 live.py · tramos en vivo</span><span class="dots"></span><span class="pn">9</span></a>
-    <a class="t2" href="#m4"><span class="tt">4.4 stt.py · transcripción y filtros</span><span class="dots"></span><span class="pn">9</span></a>
-    <a class="t2" href="#m5"><span class="tt">4.5 corrections.py · glosario</span><span class="dots"></span><span class="pn">9</span></a>
+    <a class="t2" href="#m4"><span class="tt">4.4 stt.py · transcripción y filtros</span><span class="dots"></span><span class="pn">10</span></a>
+    <a class="t2" href="#m5"><span class="tt">4.5 corrections.py · glosario</span><span class="dots"></span><span class="pn">10</span></a>
     <a class="t2" href="#m6"><span class="tt">4.6 output.py · salida</span><span class="dots"></span><span class="pn">10</span></a>
-    <a class="t2" href="#m7"><span class="tt">4.7 autosave.py · grabación a salvo</span><span class="dots"></span><span class="pn">10</span></a>
-    <a class="t2" href="#m8"><span class="tt">4.8 liveui.py · el Shell de la interfaz</span><span class="dots"></span><span class="pn">10</span></a>
+    <a class="t2" href="#m7"><span class="tt">4.7 autosave.py · grabación a salvo</span><span class="dots"></span><span class="pn">11</span></a>
+    <a class="t2" href="#m8"><span class="tt">4.8 liveui.py · el Shell de la interfaz</span><span class="dots"></span><span class="pn">11</span></a>
     <a class="t2" href="#m9"><span class="tt">4.9 flow.py · máquina de estados</span><span class="dots"></span><span class="pn">11</span></a>
-    <a class="t2" href="#m10"><span class="tt">4.10 ui.py · terminal</span><span class="dots"></span><span class="pn">11</span></a>
-    <a class="t2" href="#m11"><span class="tt">4.11 doctor.py y config.py</span><span class="dots"></span><span class="pn">11</span></a>
-    <a class="t1" href="#s5"><span class="tt">5. Flujo de datos de un dictado</span><span class="dots"></span><span class="pn">11</span></a>
-    <a class="t1" href="#s6"><span class="tt">6. Decisiones de diseño y por qué</span><span class="dots"></span><span class="pn">12</span></a>
-    <a class="t1" href="#s7"><span class="tt">7. Configuración</span><span class="dots"></span><span class="pn">14</span></a>
-    <a class="t2" href="#h8"><span class="tt">7.1 Archivos y carpetas</span><span class="dots"></span><span class="pn">14</span></a>
-    <a class="t2" href="#h9"><span class="tt">7.2 config.toml</span><span class="dots"></span><span class="pn">14</span></a>
+    <a class="t2" href="#m10"><span class="tt">4.10 ui.py · terminal</span><span class="dots"></span><span class="pn">12</span></a>
+    <a class="t2" href="#m11"><span class="tt">4.11 doctor.py y config.py</span><span class="dots"></span><span class="pn">12</span></a>
+    <a class="t1" href="#s5"><span class="tt">5. Flujo de datos de un dictado</span><span class="dots"></span><span class="pn">12</span></a>
+    <a class="t1" href="#s6"><span class="tt">6. Decisiones de diseño y por qué</span><span class="dots"></span><span class="pn">13</span></a>
+    <a class="t1" href="#s7"><span class="tt">7. Configuración</span><span class="dots"></span><span class="pn">15</span></a>
+    <a class="t2" href="#h8"><span class="tt">7.1 Archivos y carpetas</span><span class="dots"></span><span class="pn">15</span></a>
+    <a class="t2" href="#h9"><span class="tt">7.2 config.toml</span><span class="dots"></span><span class="pn">15</span></a>
     <a class="t2" href="#h10"><span class="tt">7.3 corrections.toml</span><span class="dots"></span><span class="pn">15</span></a>
-    <a class="t2" href="#h11"><span class="tt">7.4 Variables de entorno</span><span class="dots"></span><span class="pn">15</span></a>
-    <a class="t2" href="#h12"><span class="tt">7.5 Recuperar una sesión</span><span class="dots"></span><span class="pn">15</span></a>
-    <a class="t1" href="#s8"><span class="tt">8. Tests y benchmarks</span><span class="dots"></span><span class="pn">15</span></a>
-    <a class="t2" href="#h13"><span class="tt">8.1 Tests</span><span class="dots"></span><span class="pn">15</span></a>
-    <a class="t2" href="#h14"><span class="tt">8.2 Benchmarks</span><span class="dots"></span><span class="pn">16</span></a>
-    <a class="t2" href="#h15"><span class="tt">8.3 Grabar tus 3 frases para bench_src.py</span><span class="dots"></span><span class="pn">17</span></a>
-    <a class="t1" href="#s9"><span class="tt">9. Guía para forks</span><span class="dots"></span><span class="pn">17</span></a>
-    <a class="t2" href="#h16"><span class="tt">9.1 Enchufar otro motor de transcripción</span><span class="dots"></span><span class="pn">17</span></a>
-    <a class="t2" href="#h17"><span class="tt">9.2 Portar a Windows o Linux</span><span class="dots"></span><span class="pn">18</span></a>
-    <a class="t2" href="#h18"><span class="tt">9.3 Añadir un subcomando</span><span class="dots"></span><span class="pn">18</span></a>
-    <a class="t2" href="#h19"><span class="tt">9.4 Cómo contribuir y versionar</span><span class="dots"></span><span class="pn">19</span></a>
-    <a class="t1" href="#s10"><span class="tt">10. Limitaciones conocidas y roadmap</span><span class="dots"></span><span class="pn">19</span></a>
-    <a class="t2" href="#h20"><span class="tt">10.1 Limitaciones</span><span class="dots"></span><span class="pn">19</span></a>
-    <a class="t2" href="#h21"><span class="tt">10.2 Roadmap</span><span class="dots"></span><span class="pn">20</span></a>
-    <a class="t1" href="#s11"><span class="tt">11. Licencia</span><span class="dots"></span><span class="pn">20</span></a>
+    <a class="t2" href="#h11"><span class="tt">7.4 Variables de entorno</span><span class="dots"></span><span class="pn">16</span></a>
+    <a class="t2" href="#h12"><span class="tt">7.5 Recuperar una sesión</span><span class="dots"></span><span class="pn">16</span></a>
+    <a class="t2" href="#h13"><span class="tt">7.6 Recuperar el texto con voz copiar</span><span class="dots"></span><span class="pn">16</span></a>
+    <a class="t1" href="#s8"><span class="tt">8. Tests y benchmarks</span><span class="dots"></span><span class="pn">16</span></a>
+    <a class="t2" href="#h14"><span class="tt">8.1 Tests</span><span class="dots"></span><span class="pn">16</span></a>
+    <a class="t2" href="#h15"><span class="tt">8.2 Benchmarks</span><span class="dots"></span><span class="pn">17</span></a>
+    <a class="t2" href="#h16"><span class="tt">8.3 Grabar tus 3 frases para bench_src.py</span><span class="dots"></span><span class="pn">18</span></a>
+    <a class="t1" href="#s9"><span class="tt">9. Guía para forks</span><span class="dots"></span><span class="pn">18</span></a>
+    <a class="t2" href="#h17"><span class="tt">9.1 Enchufar otro motor de transcripción</span><span class="dots"></span><span class="pn">18</span></a>
+    <a class="t2" href="#h18"><span class="tt">9.2 Portar a Windows o Linux</span><span class="dots"></span><span class="pn">19</span></a>
+    <a class="t2" href="#h19"><span class="tt">9.3 Añadir un subcomando</span><span class="dots"></span><span class="pn">19</span></a>
+    <a class="t2" href="#h20"><span class="tt">9.4 Cómo contribuir y versionar</span><span class="dots"></span><span class="pn">20</span></a>
+    <a class="t1" href="#s10"><span class="tt">10. Limitaciones conocidas y roadmap</span><span class="dots"></span><span class="pn">20</span></a>
+    <a class="t2" href="#h21"><span class="tt">10.1 Limitaciones</span><span class="dots"></span><span class="pn">20</span></a>
+    <a class="t2" href="#h22"><span class="tt">10.2 Roadmap</span><span class="dots"></span><span class="pn">20</span></a>
+    <a class="t1" href="#s11"><span class="tt">11. Licencia</span><span class="dots"></span><span class="pn">21</span></a>
   </nav>
 </section>
 
@@ -205,8 +206,9 @@ voz doctor                                 # verificación sin red</code></pre>
 <tr><td><code>voz</code></td><td>Dicta por el micrófono con transcripción en vivo y copia al terminar.</td></tr>
 <tr><td><code>voz &lt;archivo&gt;</code></td><td>Transcribe un archivo de audio (m4a, ogg, opus, mp3, wav; lo que ffmpeg decodifique).</td></tr>
 <tr><td><code>voz doctor</code></td><td>Revisa Python, módulos, modelos (disponible, incompleto si faltan los pesos, o sin descargar), ffmpeg (aviso si falta), micrófono por defecto, glosario y el comando <code>voz</code>. Sin red. Con <code>--mic</code> graba 1 s y mide el nivel.</td></tr>
+<tr><td><code>voz copiar [N]</code></td><td>Vuelve a copiar al portapapeles una grabación guardada en la carpeta de estado (la última no descartada; <code>N</code> cuenta de la más nueva a la más vieja). <code>--lista</code> las muestra numeradas, <code>--todas</code> une las de la última sesión y <code>--stdout</code> imprime en vez de copiar. Solo lee: no escribe nada.</td></tr>
 <tr><td><code>voz devices</code></td><td>Imprime la lista de dispositivos de audio que ve PortAudio (<code>sounddevice.query_devices()</code>). Sirve para depurar.</td></tr>
-<tr><td><code>voz --version</code></td><td>Imprime <code>voz 0.1.0</code> y sale.</td></tr>
+<tr><td><code>voz --version</code></td><td>Imprime <code>voz 0.1.1</code> y sale.</td></tr>
 </tbody></table>
 
 <h2 id="h2">3.2 Banderas</h2>
@@ -307,7 +309,9 @@ voz nota.m4a                        # transcribir un audio
 voz reunion.m4a --srt --json        # y escribir reunion.srt y reunion.json
 voz reunion.m4a --no-copy &gt; r.txt   # solo stdout, a un archivo
 VOZ_UI=simple voz -y                # flujo simple, copia sin preguntar
-voz doctor --mic                    # diagnóstico, con prueba de micrófono</code></pre>
+voz doctor --mic                    # diagnóstico, con prueba de micrófono
+voz copiar --lista                  # grabaciones guardadas, numeradas
+voz copiar 2                        # recupera la penúltima al portapapeles</code></pre>
 
 <h1 id="s4">4. Arquitectura</h1>
 <p>El código vive en <code>src/</code> como módulos planos. <code>bin/voz</code> lanza <code>src/voz.py</code>, que añade su carpeta al <code>sys.path</code>, por eso los módulos se importan entre sí por nombre (<code>import stt</code>). Los imports pesados (MLX, sounddevice, SciPy) son perezosos para que <code>--help</code> y <code>voz devices</code> arranquen al instante.</p>
@@ -395,6 +399,7 @@ voz doctor --mic                    # diagnóstico, con prueba de micrófono</co
 <ul>
   <li><code>Segmenter.feed / current / flush</code>: recibe bloques de cualquier tamaño y devuelve tramos terminados. Mide energía por cuadros de 30 ms sobre la banda de voz con un umbral adaptativo sobre los últimos 5 s. Cierra un tramo tras 700 ms de silencio (mínimo 0,6 s), o a los 12 s con corte suave en el cuadro más silencioso del último 1,5 s. Conserva 300 ms previos al primer cuadro con voz. Los tramos que emite son el audio original, no el filtrado.</li>
   <li><code>LiveSession</code>: un único hilo trabajador es dueño del modelo. Carga el modelo (calentamiento) mientras el usuario pulsa la primera tecla, transcribe los tramos que llegan por una cola y, entre tramos, hace transcripciones parciales del tramo en curso (<code>PARTIAL_MIN_S</code> 0,8 s; espera audio nuevo equivalente a 1,2 veces lo que costó la anterior). Expone <code>submit</code>, <code>hold</code>/<code>release</code>, <code>drain</code> (esperar sin cerrar el hilo), <code>finish</code>, <code>committed</code>, <code>partial</code>, <code>failed_chunks</code>, <code>error</code>, <code>ready</code>.</li>
+  <li>Puerta de silencio: un tramo cuyo pico (el mayor RMS de cuadro de 30 ms) queda bajo <code>MIN_CHUNK_PEAK</code> (0,015) no se manda a Whisper, que ante ruido o silencio inventa texto (a veces en inglés). Los parciales usan la misma puerta. Con <code>VOZ_DIAG=1</code>, cada tramo deja una línea (descartado, aceptado, segundos, pico, idioma, nº de caracteres; nunca el texto) en <code>diag.log</code> dentro de la carpeta de estado.</li>
   <li><code>record_live</code> y <code>decide_copy</code>: el flujo simple.</li>
 </ul>
 <div class="k">Archivo</div><p><code>src/live.py</code></p>
@@ -622,14 +627,18 @@ principal = "es"       # es | en</code></pre>
 <tr><td><code>NO_COLOR</code></td><td>tú</td><td>Quita los colores; el texto provisional se marca con ‹ ›.</td></tr>
 <tr><td><code>VOZ_CONFIG</code></td><td>tú</td><td>Otra ruta para <code>config.toml</code>.</td></tr>
 <tr><td><code>VOZ_STATE_DIR</code></td><td>tú</td><td>Otra carpeta para las grabaciones a salvo (útil en pruebas).</td></tr>
+<tr><td><code>VOZ_DIAG=1</code></td><td>tú</td><td>Diagnóstico en vivo: una línea por tramo (sin texto) en <code>diag.log</code> de la carpeta de estado. Sirve para calibrar la puerta de silencio.</td></tr>
 </tbody></table>
 
 <h2 id="h12">7.5 Recuperar una sesión</h2>
 <p>Si <code>voz</code> murió sin cerrar bien, el siguiente arranque en modo micrófono imprime algo como la ruta del <code>.wav</code>, la del <code>.txt</code> y el comando <code>voz "&lt;ruta&gt;.wav"</code> para re-transcribirlo completo. Se avisa una sola vez por sesión.</p>
 
+<h2 id="h13">7.6 Recuperar el texto con <code>voz copiar</code></h2>
+<p>Si cerraste la terminal o copiaste otra cosa encima, <code>voz copiar --lista</code> muestra las grabaciones guardadas en las últimas 5 sesiones (fecha, duración, palabras y el comienzo de cada una), y <code>voz copiar N</code> copia la número N. Salta las descartadas y no modifica ningún archivo.</p>
+
 <h1 id="s8">8. Tests y benchmarks</h1>
 
-<h2 id="h13">8.1 Tests</h2>
+<h2 id="h14">8.1 Tests</h2>
 <pre><code>./.venv/bin/python -m pip install -r requirements.lock.txt -r requirements-dev.txt
 ./.venv/bin/python -m pytest -q                  # unitarios: 229 tests, sin modelo ni micrófono
 ./.venv/bin/python -m pytest -q -m integration   # 3 E2E con el modelo real en caché</code></pre>
@@ -658,7 +667,7 @@ principal = "es"       # es | en</code></pre>
 </tbody></table>
 <p>Cuando arregles un bug, escribe primero el test que falla. Es la regla del proyecto (ver <code>CONTRIBUTING.md</code>).</p>
 
-<h2 id="h14">8.2 Benchmarks</h2>
+<h2 id="h15">8.2 Benchmarks</h2>
 <p>La carpeta <code>bench/</code> tiene scripts, pero <b>no incluye audios</b>: son grabaciones tuyas o sintéticas que debes generar. Todos dependen del modelo o de <code>say</code> y <code>ffmpeg</code> de macOS.</p>
 <table>
 <thead><tr><th>Script</th><th>Para qué</th><th>Necesita</th></tr></thead>
@@ -670,7 +679,7 @@ principal = "es"       # es | en</code></pre>
 <tr><td><code>bench/ux/pty_flows.py</code></td><td>Verificaciones de extremo a extremo de los flujos de teclas con audio simulado y un <code>pbcopy</code> falso.</td><td><code>voz</code> instalado y <code>bench/long/long1_pausas.wav</code></td></tr>
 </tbody></table>
 
-<h2 id="h15">8.3 Grabar tus 3 frases para <code>bench_src.py</code></h2>
+<h2 id="h16">8.3 Grabar tus 3 frases para <code>bench_src.py</code></h2>
 <p>El script carga <code>audio/f1.wav</code>, <code>f2.wav</code> y <code>f3.wav</code> desde <code>bench/audio/</code> y se corre desde <code>bench/</code>. Cada frase debe ser una oración de unos 5 a 10 segundos con una o dos pausas largas (más de 0,7 s) en medio, en WAV de 16 kHz mono.</p>
 <p>Las etiquetas de «dónde hay voz» se calculan con un umbral absoluto de -45 dBFS, pensado para un silencio digital limpio. Por eso conviene <b>voz sintética</b> (el silencio de <code>say</code> es silencio digital). Una grabación real con ruido de sala por encima de ese nivel se marcaría toda como voz y el banco no tendría sentido.</p>
 <pre><code>mkdir -p bench/audio
@@ -684,7 +693,7 @@ cd bench && ../.venv/bin/python bench_src.py</code></pre>
 
 <h1 id="s9">9. Guía para forks</h1>
 
-<h2 id="h16">9.1 Enchufar otro motor de transcripción</h2>
+<h2 id="h17">9.1 Enchufar otro motor de transcripción</h2>
 <p>El motor vive en <code>stt.py</code>. El resto del programa depende de este contrato, no de MLX:</p>
 <pre><code>transcribe_segments(audio, *, model, language, initial_prompt=None,
                     condition_on_previous_text=False, dictation=True,
@@ -702,7 +711,7 @@ detect_language_probs(audio, model) -&gt; {"es": p, "en": p}   # LangState.choos
   <li>Ajusta <code>DEFAULT_MODEL</code> y <code>ACCURATE_MODEL</code> a los nombres de tu motor, y las pruebas de <code>test_stt_clean.py</code> que fijan el formato de resultado.</li>
 </ol>
 
-<h2 id="h17">9.2 Portar a Windows o Linux</h2>
+<h2 id="h18">9.2 Portar a Windows o Linux</h2>
 <table>
 <thead><tr><th>Pieza</th><th>Dónde</th><th>Qué cambiar</th></tr></thead>
 <tbody>
@@ -718,7 +727,7 @@ detect_language_probs(audio, model) -&gt; {"es": p, "en": p}   # LangState.choos
 </tbody></table>
 <div class="note">Recomendación: un PR por pieza (portapapeles, luego teclado, luego motor) y el camino de macOS siempre con sus tests en verde. Abre un issue antes para acordar la interfaz.</div>
 
-<h2 id="h18">9.3 Añadir un subcomando</h2>
+<h2 id="h19">9.3 Añadir un subcomando</h2>
 <p>Los subcomandos son valores del argumento posicional <code>target</code>. <code>voz.py</code> los lista en la tupla <code>COMMANDS</code> para no confundirlos con un archivo. Pasos:</p>
 <ol>
   <li>Añade el nombre a <code>COMMANDS</code>.</li>
@@ -737,7 +746,7 @@ def main(argv=None):
         return ejemplo.run()</code></pre>
 <p>Una futura <code>voz habla</code> (texto a voz) encajaría exactamente así.</p>
 
-<h2 id="h19">9.4 Cómo contribuir y versionar</h2>
+<h2 id="h20">9.4 Cómo contribuir y versionar</h2>
 <p>El proyecto usa GitHub Flow. El detalle y la plantilla de PR están en <code>CONTRIBUTING.md</code> y <code>.github/</code>; este es el resumen.</p>
 <ul>
   <li><b>Ramas.</b> <code>main</code> está siempre estable y protegida. Todo cambio entra por un pull request desde una rama corta: <code>feat/…</code>, <code>fix/…</code>, <code>docs/…</code> o <code>chore/…</code>. El PR se integra con squash.</li>
@@ -750,7 +759,7 @@ def main(argv=None):
 
 <h1 id="s10">10. Limitaciones conocidas y roadmap</h1>
 
-<h2 id="h20">10.1 Limitaciones</h2>
+<h2 id="h21">10.1 Limitaciones</h2>
 <table>
 <thead><tr><th>Limitación</th><th>Detalle</th></tr></thead>
 <tbody>
@@ -766,7 +775,7 @@ def main(argv=None):
 <tr><td>Solo micrófono</td><td>No captura el audio del sistema (videollamadas). Usa el dispositivo de entrada por defecto de macOS; para otro, cámbialo en los ajustes de sonido del sistema.</td></tr>
 </tbody></table>
 
-<h2 id="h21">10.2 Roadmap</h2>
+<h2 id="h22">10.2 Roadmap</h2>
 <p>Sin fechas. Es un proyecto personal que avanza a ratos.</p>
 <ol>
   <li><b>v0.1.1.</b> Glosario insensible a tildes (NFC y plegado de vocales), portapapeles con entorno UTF-8, validar <code>--lang</code>, señal sonora al terminar, tecla <code>e</code> para corregir una palabra y recordarla, tecla <code>i</code> para cambiar el idioma y reprocesar, idioma principal aprendido del uso, pista de vocabulario opcional y CI en GitHub Actions. Lista priorizada en <code>CHANGELOG.md</code>.</li>

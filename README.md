@@ -253,7 +253,7 @@ Lo que sabemos que no funciona bien, sin maquillar:
 - Con ruido fuerte de fondo (10 dB de relación señal-ruido o peor) el detector de pausas falla.
 - **La voz baja ya no se pierde, pero hay un límite.** La puerta de nivel compara cada tramo con el ruido de tu sala, no con un valor fijo: dictar bajito o con el micrófono lejos funciona mucho mejor que antes. Un tramo apenas por encima del ruido se omite y la revisión lo cuenta (`N tramos omitidos por nivel bajo`); el audio sigue en el respaldo.
 - **Las voces remotas por parlante casi no se detectan como voz.** En una llamada, lo que dice la otra persona sale tan bajo y parecido al ruido de la sala que gran parte se omite. Es un límite de la captura: solo el micrófono.
-- El glosario distingue tildes: `nequi` y `néqui` son reglas distintas.
+- El glosario normaliza Unicode y no distingue tildes en vocales: `nequi` casa con `néqui`; `ñ` sigue siendo distinta de `n`.
 - No captura el audio del sistema (por ejemplo, el de una reunión en línea): solo el micrófono.
 
 ## Roadmap

@@ -80,7 +80,7 @@ El archivo de ejemplo `config/corrections.example.toml` solo debe traer reglas q
 - **Solo nombres propios y términos técnicos** que Whisper oye mal de forma consistente (por ejemplo, un nombre de producto o de librería).
 - **Nunca palabras comunes.** Pares como poner/poder o casa/caza son errores acústicos: corregirlos a ciegas rompería frases correctas.
 - **Cuidado con las claves que son palabras reales en otro idioma.** Una regla `cloud` → `Claude` daña `backup to the cloud`, y por eso ya no está en el ejemplo. Prefiere claves de varias palabras (`cloud code`) o inventadas por el mal oído (`supavase`).
-- Mínimo 3 caracteres por clave. Las claves distinguen tildes (hoy no las pliega).
+- Mínimo 3 caracteres por clave. Las claves se normalizan a NFC y no distinguen tildes en vocales; `ñ` sigue siendo distinta de `n`.
 - En el PR, cuenta qué frase dijiste y qué escribió Whisper exactamente. Sin eso no podemos comprobar la regla.
 - Nada de nombres de personas, clientes o empresas privadas.
 

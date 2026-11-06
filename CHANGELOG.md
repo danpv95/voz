@@ -6,10 +6,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## Unreleased / 0.1.3
 
+### Corregido
+- El glosario reconoce vocales con tilde y texto Unicode descompuesto, sin confundir `ñ` con `n` ni quitar tildes del texto no reemplazado.
+
 Pendiente, en orden de prioridad. Es una lista de trabajo, no una promesa de fechas.
 
 ### Correcciones prioritarias
-1. Glosario insensible a tildes y con normalización Unicode NFC (hoy `nequi` y `néqui` son reglas distintas).
 2. Portapapeles: forzar entorno UTF-8 en `pbcopy` y `pbpaste` para que las tildes sobrevivan si `voz` se lanza desde un lanzador o un servicio sin entorno UTF-8.
 3. Validar `--lang` en el parser (aceptar `ES`, `spanish`) en vez de fallar después con un error engañoso.
 4. Pie de la pantalla duplicado al cambiar el tamaño de la ventana.

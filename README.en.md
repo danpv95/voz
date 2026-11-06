@@ -255,7 +255,7 @@ What we know does not work well, no sugarcoating:
 - With strong background noise (10 dB signal-to-noise or worse) the pause detector fails.
 - **Quiet speech is no longer lost, but there is a limit.** The level gate compares each chunk with your room's noise, not with a fixed value: dictating softly or with the microphone far away works much better than before. A chunk barely above the noise is skipped and the review counts it (`N tramos omitidos por nivel bajo`); the audio stays in the backup.
 - **Remote voices through a speaker are barely detected as speech.** On a call, what the other person says comes out so quiet and so close to the room noise that much of it is skipped. It is a capture limit: only the microphone.
-- The glossary is accent-sensitive: `nequi` and `néqui` are different rules.
+- The glossary normalizes Unicode and ignores acute accents on vowels: `nequi` matches `néqui`; `ñ` remains distinct from `n`.
 - It does not capture system audio (for example an online meeting): only the microphone.
 
 ## Roadmap

@@ -3,7 +3,7 @@
 ![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)
 ![platform macOS Apple Silicon](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey.svg)
-![version 0.1.1](https://img.shields.io/badge/version-0.1.1-informational.svg)
+![version 0.1.2](https://img.shields.io/badge/version-0.1.2-informational.svg)
 
 Web: [voz-cli.vercel.app](https://voz-cli.vercel.app) (cómo se ve, cómo instalarlo y qué cambió en cada versión)
 
@@ -21,7 +21,7 @@ Queríamos dictarle a un agente de código sin mandar el audio a la nube y sin p
 
 Para quien vive en la terminal en un Mac con chip Apple Silicon (M1 o posterior) y quiere dictar sin sacar su voz del equipo. Si además escribes en español, mejor: es el idioma con el que más lo hemos usado. Con `--lang auto` mantiene el idioma de la sesión, empieza por tu idioma principal (español por defecto, ver [Idioma principal](#idioma-principal)) y solo cambia con evidencia fuerte.
 
-**Estado: v0.1.1.** Funciona y lo usamos a diario, pero es una versión temprana con aristas conocidas (ver [Limitaciones](#limitaciones)). Solo macOS en Apple Silicon por ahora.
+**Estado: v0.1.2.** Funciona y lo usamos a diario, pero es una versión temprana con aristas conocidas (ver [Limitaciones](#limitaciones)). Solo macOS en Apple Silicon por ahora.
 
 ## Cómo se ve una sesión
 

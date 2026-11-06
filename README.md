@@ -3,7 +3,7 @@
 ![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)
 ![platform macOS Apple Silicon](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey.svg)
-![version 0.1.1](https://img.shields.io/badge/version-0.1.1-informational.svg)
+![version 0.1.2](https://img.shields.io/badge/version-0.1.2-informational.svg)
 
 Web: [voz-cli.vercel.app](https://voz-cli.vercel.app) (cómo se ve, cómo instalarlo y qué cambió en cada versión)
 
@@ -21,7 +21,7 @@ Queríamos dictarle a un agente de código sin mandar el audio a la nube y sin p
 
 Para quien vive en la terminal en un Mac con chip Apple Silicon (M1 o posterior) y quiere dictar sin sacar su voz del equipo. Si además escribes en español, mejor: es el idioma con el que más lo hemos usado. Con `--lang auto` mantiene el idioma de la sesión, empieza por tu idioma principal (español por defecto, ver [Idioma principal](#idioma-principal)) y solo cambia con evidencia fuerte.
 
-**Estado: v0.1.1.** Funciona y lo usamos a diario, pero es una versión temprana con aristas conocidas (ver [Limitaciones](#limitaciones)). Solo macOS en Apple Silicon por ahora.
+**Estado: v0.1.2.** Funciona y lo usamos a diario, pero es una versión temprana con aristas conocidas (ver [Limitaciones](#limitaciones)). Solo macOS en Apple Silicon por ahora.
 
 ## Cómo se ve una sesión
 
@@ -32,7 +32,7 @@ $ voz
 voz  ·  turbo  ·  auto  ·  🎙 MacBook Pro Microphone
 ⠋ Cargando modelo… 3 s   esc salir
 
-● Listo   ↵ hablar · esc salir
+● Listo   ↵ hablar · h historial · esc salir
   habla con pausas cortas: voz transcribe mientras hablas · voz --help para más
 
         (pulsas ↵ y empiezas a hablar)
@@ -49,7 +49,9 @@ voz  ·  turbo  ·  auto  ·  🎙 MacBook Pro Microphone
 Necesito que revises el módulo de facturación antes del viernes y separa el texto parcial del confirmado.
 
 ✓  Copiado (reemplazó tu portapapeles)  ·  7 s  ·  17 palabras  ·  es
+Respaldo: ~/.local/state/voz/sesion-20261106-101500-g1  ·  texto y audio
 ↵ salir · Cmd-V para pegar   r grabar otra   c añadir   ⌫ descartar
+s copiar de nuevo   h historial
 ```
 
 La cabecera muestra el modelo abreviado (`turbo`, o `large-v3` con `--accurate`) y el micrófono de entrada por defecto del sistema. La pista gris bajo «Listo» sale solo la primera vez. En una terminal estrecha (menos de unas 60 columnas) las teclas pasan a una línea propia y se recorta antes el medidor: nunca desaparecen.
@@ -128,6 +130,7 @@ voz nota.ogg --no-copy > nota.txt   # solo stdout, nada al portapapeles
 
 voz copiar                  # vuelve a copiar la última grabación guardada
 voz copiar 2                # la penúltima (voz copiar --lista las muestra numeradas)
+voz copiar --lista          # todas, con las descartadas al final y marcadas
 voz doctor                  # diagnóstico sin red (voz doctor --mic graba 1 s)
 voz devices                 # lista los dispositivos de audio
 voz --version
@@ -135,16 +138,19 @@ voz --version
 
 `voz` imprime en stdout solo la transcripción. Todo lo demás (estado, avisos) va a stderr, así que `voz archivo.m4a | pbcopy` o redirigir a un archivo funcionan limpios. Los `--srt` y `--json` nunca sobrescriben: si ya existen, crean `reunion-1.srt`, `reunion-2.srt`, etc.
 
-**Si perdiste el texto** (cerraste la terminal, copiaste otra cosa encima), `voz copiar` lo recupera de `~/.local/state/voz`, donde `voz` guarda las últimas 5 sesiones. Cuenta las grabaciones de la más reciente a la más antigua y se salta las descartadas:
+**Si perdiste el texto** (cerraste la terminal, copiaste otra cosa encima), `voz copiar` lo recupera de `~/.local/state/voz`, donde `voz` guarda las últimas 5 sesiones. Cuenta las grabaciones de la más reciente a la más antigua. Sin número copia la última que no esté descartada; las descartadas van al final de la lista, marcadas, y se copian por su número:
 
 ```bash
 voz copiar --lista          # fecha, duración, palabras y el comienzo de cada una, numeradas
 voz copiar 3                # la tercera de esa lista
+voz copiar 5                # una descartada (la lista la marca «descartada»)
 voz copiar --todas          # todas las grabaciones de la última sesión, unidas
 voz copiar --stdout | less  # imprime en vez de copiar
 ```
 
-Dice por stderr qué copió (`✓ Copiado · sesión 2026-11-03 12:00 · grabación 2 · 41 palabras`). No guarda nada nuevo ni toca los archivos.
+Dice por stderr qué copió (`✓ Copiado · sesión 2026-11-03 12:00 · grabación 2 · 41 palabras`, con `· descartada` si lo era). `--todas` une solo las que no están descartadas. No guarda nada nuevo ni toca los archivos.
+
+Sin salir de `voz`, la tecla `h` abre el mismo historial (ver [Teclas del modo en vivo](#teclas-del-modo-en-vivo)).
 
 Banderas principales:
 
@@ -168,13 +174,18 @@ La referencia completa está en la [guía](docs/guia-voz.pdf) (fuente: [`docs/gu
 
 | Momento | Teclas |
 |---|---|
-| Listo | `↵` o espacio: hablar · `esc`: salir |
+| Listo | `↵` o espacio: hablar · `h`: historial · `esc`: salir |
 | Escuchando | `↵` o espacio: terminar · `p`: pausa · `esc`: terminar y descartar (se puede deshacer) |
 | En pausa | `p`: reanudar · `↵`: terminar · `esc`: terminar y descartar |
-| Revisión | `↵`: salir (el texto ya está copiado: `Cmd-V` para pegar) · `r`: grabar otra · `c`: añadir a esta grabación · `⌫`: descartar · `u`: deshacer · `s`: copiar (solo si pediste copiar a mano) · `esc`: salir |
-| Sin voz | `r`: reintentar · `↵` o `esc`: salir |
+| Revisión | `↵`: salir (el texto ya está copiado: `Cmd-V` para pegar) · `r`: grabar otra · `c`: añadir a esta grabación · `⌫`: descartar · `u`: deshacer · `s`: copiar, o copiar de nuevo si ya está copiado (siempre que haya texto) · `h`: historial · `esc`: salir |
+| Sin voz | `r`: reintentar · `h`: historial · `↵` o `esc`: salir |
+| Historial | `↑` `↓`: elegir · `1`-`9`: saltar a esa fila · `↵`: copiar y volver · `esc` o `h`: volver a donde estabas |
 | Sin audio del micrófono | `↵` o `r`: reintentar · `esc`: salir |
 | Salir con varias grabaciones | `↵`: dejar copiada la última · `a`: copiar todas juntas · `esc`: salir sin cambiar el portapapeles |
+
+`h` y `s` no aparecen con `--no-copy`. Las descartadas salen al final del historial, en gris y marcadas «descartada»; `↵` las copia igual. Sin grabaciones guardadas, `h` avisa en una línea.
+
+**Respaldo y portapapeles.** La revisión muestra una línea gris con la carpeta del respaldo (`Respaldo: ~/.local/state/voz/sesion-…-g1  ·  texto y audio`); si el disco rechazó el texto o el audio, la línea pasa a ámbar y lo dice. Si la puerta de nivel descartó tramos, el resumen lo cuenta: `3 tramos omitidos por nivel bajo` (con `VOZ_DIAG=1` apunta a `diag.log`). Descartar una grabación solo toca el portapapeles mientras siga teniendo el texto que puso `voz`: si copiaste otra cosa, queda intacta, también al salir.
 
 Mientras el modelo carga ves `⠋ Cargando modelo… 3 s` con un contador; un `↵` pulsado en ese momento se ignora con el aviso «↵ ignorado: el modelo todavía está cargando». Si la carga falla, lo ves ahí mismo con la causa. Descartar nunca borra el audio del disco. `Ctrl-C` es una salida segura: termina lo que se está grabando, deja copiado el último texto válido (según tu configuración) y sale siempre con código 130, haya texto o no. Dice lo que de verdad pasó: `Interrumpido · texto copiado`, `Interrumpido · audio guardado en <ruta>` o `Cancelado` (no había grabación), y nunca promete un respaldo que falló. Al terminar, `voz` espera hasta 20 s a que se transcriba lo pendiente; si no llega, o si pulsas `Ctrl-C` otra vez, sale igual: el audio queda guardado, la sesión queda marcada como incompleta y `voz` te dice cómo re-transcribirla (el siguiente `voz` también te la recuerda). Si algún tramo no se pudo transcribir, la revisión no finge éxito: muestra `⚠ Texto incompleto · 2 tramos sin transcribir · copiado` y el comando para transcribir el audio entero; si fallaron todos, dice `✖ No se pudo transcribir · el audio quedó guardado` en lugar de «No se detectó voz». Pegar texto en la terminal de `voz` no dispara teclas.
 
@@ -240,6 +251,8 @@ Lo que sabemos que no funciona bien, sin maquillar:
 - **Llamadas o varias voces: fija el idioma.** En `auto` el audio lejano o con varias voces puede confundir al detector. La sesión es pegajosa y solo cambia con evidencia fuerte, pero en llamadas o con varias voces conviene `--lang es` (o `--lang en`).
 - Con el micrófono, un «gracias» dicho solo se conserva cuando de verdad hablaste: se descarta únicamente si el audio es silencio (alucinación típica de Whisper). En archivos, un «gracias» aislado sí se descarta, por prudencia.
 - Con ruido fuerte de fondo (10 dB de relación señal-ruido o peor) el detector de pausas falla.
+- **La voz baja ya no se pierde, pero hay un límite.** La puerta de nivel compara cada tramo con el ruido de tu sala, no con un valor fijo: dictar bajito o con el micrófono lejos funciona mucho mejor que antes. Un tramo apenas por encima del ruido se omite y la revisión lo cuenta (`N tramos omitidos por nivel bajo`); el audio sigue en el respaldo.
+- **Las voces remotas por parlante casi no se detectan como voz.** En una llamada, lo que dice la otra persona sale tan bajo y parecido al ruido de la sala que gran parte se omite. Es un límite de la captura: solo el micrófono.
 - El glosario normaliza Unicode y no distingue tildes en vocales: `nequi` casa con `néqui`; `ñ` sigue siendo distinta de `n`.
 - No captura el audio del sistema (por ejemplo, el de una reunión en línea): solo el micrófono.
 
@@ -247,7 +260,7 @@ Lo que sabemos que no funciona bien, sin maquillar:
 
 `voz` es el proyecto; hoy tiene una sola cara, el CLI de terminal. Las demás se apoyan en el mismo núcleo (grabar, transcribir, limpiar, glosario).
 
-1. **v0.1.1**: glosario insensible a tildes, portapapeles con entorno UTF-8, validar `--lang`, señal sonora al terminar, tecla `e` para corregir una palabra y recordarla, tecla `i` para cambiar el idioma y reprocesar, idioma principal aprendido del uso, pista de vocabulario opcional y CI en GitHub Actions. Detalle en [CHANGELOG.md](CHANGELOG.md).
+1. **v0.1.3**, pendiente: glosario insensible a tildes, portapapeles con entorno UTF-8, validar `--lang`, señal sonora al terminar, tecla `e` para corregir una palabra y recordarla, tecla `i` para cambiar el idioma y reprocesar, idioma principal aprendido del uso, pista de vocabulario opcional, CI en GitHub Actions, el pie duplicado al cambiar el tamaño de la ventana, el `es+en` falso en el resumen y poder conservar una sesión más allá de las últimas 5. Detalle en [CHANGELOG.md](CHANGELOG.md).
 2. **Windows y Linux**: un motor alternativo (por ejemplo faster-whisper) detrás de la misma interfaz, más portapapeles y teclado multiplataforma. Si quieres ayudar, empieza por [CONTRIBUTING.md](CONTRIBUTING.md).
 3. **App de menú para macOS**, a futuro: dictar en cualquier aplicación con un atajo global.
 4. **`voz habla`**, a futuro: el camino inverso, de texto a voz.

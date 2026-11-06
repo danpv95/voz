@@ -1,6 +1,6 @@
 [project]
 name = "voz-cli"
-version = "0.1.1"
+version = "0.1.2"
 description = "Dictado por voz local para macOS Apple Silicon: transcripción offline con mlx-whisper"
 requires-python = ">=3.12"
 license = "MIT"

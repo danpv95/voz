@@ -3,7 +3,7 @@
 ![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)
 ![platform macOS Apple Silicon](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey.svg)
-![version 0.1.1](https://img.shields.io/badge/version-0.1.1-informational.svg)
+![version 0.1.2](https://img.shields.io/badge/version-0.1.2-informational.svg)
 
 Website: [voz-cli.vercel.app](https://voz-cli.vercel.app) (what it looks like, how to install it and what changed in each version)
 
@@ -21,7 +21,7 @@ We wanted to dictate to a coding agent without sending audio to the cloud and wi
 
 People who live in the terminal on a Mac with Apple Silicon (M1 or later) and want to dictate without their voice leaving the machine. We use it mostly in Spanish, and with `--lang auto` it keeps the session's language: it starts with your primary language (Spanish by default, see [Primary language](#primary-language)) and only switches on strong evidence. Mixing Spanish and English in one session still works when the change is clear and you pause between them.
 
-**Status: v0.1.1.** It works and we use it every day, but it is an early release with known rough edges (see [Limitations](#limitations)). macOS on Apple Silicon only, for now.
+**Status: v0.1.2.** It works and we use it every day, but it is an early release with known rough edges (see [Limitations](#limitations)). macOS on Apple Silicon only, for now.
 
 ## What a session looks like
 
@@ -32,7 +32,7 @@ $ voz
 voz  ·  turbo  ·  auto  ·  🎙 MacBook Pro Microphone
 ⠋ Cargando modelo… 3 s   esc salir
 
-● Listo   ↵ hablar · esc salir
+● Listo   ↵ hablar · h historial · esc salir
   habla con pausas cortas: voz transcribe mientras hablas · voz --help para más
 
         (you press ↵ and start talking)
@@ -49,7 +49,9 @@ voz  ·  turbo  ·  auto  ·  🎙 MacBook Pro Microphone
 Necesito que revises el módulo de facturación antes del viernes y separa el texto parcial del confirmado.
 
 ✓  Copiado (reemplazó tu portapapeles)  ·  7 s  ·  17 palabras  ·  es
+Respaldo: ~/.local/state/voz/sesion-20261106-101500-g1  ·  texto y audio
 ↵ salir · Cmd-V para pegar   r grabar otra   c añadir   ⌫ descartar
+s copiar de nuevo   h historial
 ```
 
 The header shows the model in short form (`turbo`, or `large-v3` with `--accurate`) and the system's default input microphone. The gray hint under "Listo" ("speak with short pauses: voz transcribes while you talk") appears only the first time. On a narrow terminal (under about 60 columns) the keys move to a line of their own and the meter is cut first: the keys never disappear.
@@ -128,6 +130,7 @@ voz note.ogg --no-copy > note.txt   # stdout only, clipboard untouched
 
 voz copiar                  # copy the last saved recording again ("copiar" = copy)
 voz copiar 2                # the one before it (voz copiar --lista lists them numbered)
+voz copiar --lista          # all of them, discarded ones last and marked
 voz doctor                  # offline diagnostics (voz doctor --mic records 1 s)
 voz devices                 # list audio devices
 voz --version
@@ -135,16 +138,19 @@ voz --version
 
 `voz` prints only the transcript on stdout. Everything else (status, warnings) goes to stderr, so `voz file.m4a | pbcopy` or a redirect stay clean. `--srt` and `--json` never overwrite: if the file exists they write `meeting-1.srt`, `meeting-2.srt`, and so on.
 
-**If you lost the text** (closed the terminal, copied something over it), `voz copiar` recovers it from `~/.local/state/voz`, where `voz` keeps the last 5 sessions. It counts recordings from newest to oldest and skips discarded ones:
+**If you lost the text** (closed the terminal, copied something over it), `voz copiar` recovers it from `~/.local/state/voz`, where `voz` keeps the last 5 sessions. It counts recordings from newest to oldest. With no number it copies the last one that is not discarded; discarded ones go to the end of the list, marked, and you copy them by number:
 
 ```bash
 voz copiar --lista          # date, length, words and the start of each one, numbered
 voz copiar 3                # the third one on that list
+voz copiar 5                # a discarded one (the list marks it "descartada", i.e. discarded)
 voz copiar --todas          # every recording of the last session, joined
 voz copiar --stdout | less  # print instead of copying
 ```
 
-It reports on stderr what it copied (`✓ Copiado · sesión 2026-11-03 12:00 · grabación 2 · 41 palabras`, i.e. copied, session, recording, words). It saves nothing new and touches no files.
+It reports on stderr what it copied (`✓ Copiado · sesión 2026-11-03 12:00 · grabación 2 · 41 palabras`, i.e. copied, session, recording, words, plus `· descartada` if it was discarded). `--todas` joins only the ones that are not discarded. It saves nothing new and touches no files.
+
+Without leaving `voz`, the `h` key opens the same history (see [Live mode keys](#live-mode-keys)).
 
 Main flags:
 
@@ -168,13 +174,18 @@ The full reference lives in the [guide](docs/guia-voz.pdf) (source: [`docs/guia-
 
 | Moment | Keys |
 |---|---|
-| Ready | `↵` or space: talk · `esc`: quit |
+| Ready | `↵` or space: talk · `h`: history · `esc`: quit |
 | Listening | `↵` or space: finish · `p`: pause · `esc`: finish and discard (can be undone) |
 | Paused | `p`: resume · `↵`: finish · `esc`: finish and discard |
-| Review | `↵`: quit (the text is already copied: `Cmd-V` to paste) · `r`: record another · `c`: add to this one · `⌫`: discard · `u`: undo · `s`: copy (only if you chose manual copy) · `esc`: quit |
-| No voice | `r`: retry · `↵` or `esc`: quit |
+| Review | `↵`: quit (the text is already copied: `Cmd-V` to paste) · `r`: record another · `c`: add to this one · `⌫`: discard · `u`: undo · `s`: copy, or copy again if it is already copied (whenever there is text) · `h`: history · `esc`: quit |
+| No voice | `r`: retry · `h`: history · `↵` or `esc`: quit |
+| History | `↑` `↓`: choose · `1`-`9`: jump to that row · `↵`: copy and go back · `esc` or `h`: back to where you were |
 | No microphone audio | `↵` or `r`: retry · `esc`: quit |
 | Quitting with several takes | `↵`: keep the last one copied · `a`: copy all together · `esc`: quit without touching the clipboard |
+
+`h` and `s` do not appear with `--no-copy`. Discarded recordings come last in the history, in gray and marked "descartada" (discarded); `↵` copies them all the same. With no saved recordings, `h` gives a one-line notice.
+
+**Backup and clipboard.** The review shows a gray line with the backup folder (`Respaldo: ~/.local/state/voz/sesion-…-g1  ·  texto y audio`, i.e. backup, text and audio); if the disk refused the text or the audio, the line turns amber and says so. If the level gate dropped chunks, the summary counts them: `3 tramos omitidos por nivel bajo` (chunks skipped for low level; with `VOZ_DIAG=1` it points to `diag.log`). Discarding a recording only touches the clipboard while it still holds the text `voz` put there: if you copied something else, it stays intact, also when you quit.
 
 While the model loads you see `⠋ Cargando modelo… 3 s` with a counter, and a `↵` pressed then is ignored with the notice "↵ ignorado: el modelo todavía está cargando" (ignored: the model is still loading). If the load fails, you see the cause right there. Discarding never deletes the audio from disk. `Ctrl-C` is a safe exit: it finishes what is being recorded, leaves the last valid text copied (per your config) and always exits with code 130, with or without text. It says what really happened: `Interrumpido · texto copiado` (interrupted, text copied), `Interrumpido · audio guardado en <path>` (audio saved) or `Cancelado` (nothing had been recorded), and never promises a backup that failed. When finishing, `voz` waits up to 20 s for the pending text; if it does not arrive, or you press `Ctrl-C` again, it leaves anyway: the audio is saved, the session is marked incomplete and `voz` tells you how to re-transcribe it (the next `voz` reminds you too). If some chunk could not be transcribed, the review does not pretend success: it shows `⚠ Texto incompleto · 2 tramos sin transcribir · copiado` (incomplete text, 2 chunks not transcribed, copied) with the command to transcribe the whole audio; if every chunk failed it says `✖ No se pudo transcribir · el audio quedó guardado` (could not transcribe, audio saved) instead of "No se detectó voz". Pasting text into the `voz` terminal does not trigger keys.
 
@@ -242,6 +253,8 @@ What we know does not work well, no sugarcoating:
 - **Calls or several voices: fix the language.** In `auto`, distant audio or several voices can confuse the detector. The session is sticky and only switches on strong evidence, but for calls or several voices `--lang es` (or `--lang en`) is the safer choice.
 - With the microphone, a lone "gracias" is kept when you really spoke: it is dropped only if the audio is silence (a typical Whisper hallucination). In files, an isolated "gracias" is dropped, to be safe.
 - With strong background noise (10 dB signal-to-noise or worse) the pause detector fails.
+- **Quiet speech is no longer lost, but there is a limit.** The level gate compares each chunk with your room's noise, not with a fixed value: dictating softly or with the microphone far away works much better than before. A chunk barely above the noise is skipped and the review counts it (`N tramos omitidos por nivel bajo`); the audio stays in the backup.
+- **Remote voices through a speaker are barely detected as speech.** On a call, what the other person says comes out so quiet and so close to the room noise that much of it is skipped. It is a capture limit: only the microphone.
 - The glossary normalizes Unicode and ignores acute accents on vowels: `nequi` matches `néqui`; `ñ` remains distinct from `n`.
 - It does not capture system audio (for example an online meeting): only the microphone.
 
@@ -249,7 +262,7 @@ What we know does not work well, no sugarcoating:
 
 `voz` is the project; today it has a single face, the terminal CLI. The others build on the same core (record, transcribe, clean up, glossary).
 
-1. **v0.1.1**: accent-insensitive glossary, UTF-8 clipboard environment, `--lang` validation, an optional sound when done, an `e` key to fix a word and remember it, an `i` key to change the language and reprocess, a primary language learned from use, an optional vocabulary hint and CI on GitHub Actions. Details in [CHANGELOG.md](CHANGELOG.md).
+1. **v0.1.3**, pending: accent-insensitive glossary, UTF-8 clipboard environment, `--lang` validation, an optional sound when done, an `e` key to fix a word and remember it, an `i` key to change the language and reprocess, a primary language learned from use, an optional vocabulary hint, CI on GitHub Actions, the duplicated footer when the window is resized, the false `es+en` in the summary and keeping a session beyond the last 5. Details in [CHANGELOG.md](CHANGELOG.md).
 2. **Windows and Linux**: an alternative engine (for example faster-whisper) behind the same interface, plus cross-platform clipboard and keyboard handling. If you want to help, start with [CONTRIBUTING.md](CONTRIBUTING.md).
 3. **macOS menu bar app**, someday: dictate into any app with a global shortcut.
 4. **`voz habla`**, someday: the reverse direction, text to speech.

@@ -215,11 +215,15 @@ def test_lock_stays_if_the_writer_is_still_alive_at_close(state_dir, monkeypatch
     real_join = s._writer.join
     monkeypatch.setattr(s._writer, "join", lambda timeout=None: real_join(0.05))   # don't wait 5 s
     s.close()
-    assert s._writer.is_alive()
-    assert s.lock_path.exists()                            # session still shows as recoverable
-    assert [p.name for p in autosave.unfinished()] == [s.base.name]
+    assert s._writer.is_alive() and s.close_pending        # the close is registered as pending
+    assert s.lock_path.exists()                            # never marked clean
+    assert autosave._lock_held(s.lock_path) is True        # flock kept: no other voz takes it for a dead session
+    assert autosave.unfinished() == []                     # (it is still being written, not abandoned)
     gate.set()
     s._writer.join(2)
+    assert autosave._lock_held(s.lock_path) is False       # released once the writer is gone…
+    assert s.lock_path.exists()                            # …and the file stays: the next voz reports it
+    assert [p.name for p in autosave.unfinished()] == [s.base.name]
 
 
 def test_lock_is_removed_only_after_a_clean_writer(state_dir):

@@ -4,7 +4,7 @@ Todos los cambios relevantes de este proyecto se documentan aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
-## Unreleased / 0.1.2
+## Unreleased / 0.1.3
 
 ### Corregido
 - El glosario reconoce vocales con tilde y texto Unicode descompuesto, sin confundir `ñ` con `n` ni quitar tildes del texto no reemplazado.
@@ -14,25 +14,52 @@ Pendiente, en orden de prioridad. Es una lista de trabajo, no una promesa de fec
 ### Correcciones prioritarias
 2. Portapapeles: forzar entorno UTF-8 en `pbcopy` y `pbpaste` para que las tildes sobrevivan si `voz` se lanza desde un lanzador o un servicio sin entorno UTF-8.
 3. Validar `--lang` en el parser (aceptar `ES`, `spanish`) en vez de fallar después con un error engañoso.
+4. Pie de la pantalla duplicado al cambiar el tamaño de la ventana.
+5. El resumen puede indicar `es+en` por un tramo en inglés que se descartó.
 
 ### Funciones nuevas
-4. Tecla `e` en la revisión: corregir una palabra y elegir entre «solo esta grabación» o recordarla en el glosario.
-5. Tecla `i` en la revisión: cambiar el idioma (auto, español, inglés) y reprocesar la grabación.
-6. Idioma principal aprendido del uso: que el sesgo de `--lang auto` siga el idioma que de verdad dictas, además del config y del sistema (por decidir).
-7. Pista de vocabulario opcional para nombres y términos (por decidir).
-8. Señal sonora opcional al terminar.
+6. Tecla `e` en la revisión: corregir una palabra y elegir entre «solo esta grabación» o recordarla en el glosario.
+7. Tecla `i` en la revisión: cambiar el idioma (auto, español, inglés) y reprocesar la grabación.
+8. Idioma principal aprendido del uso: que el sesgo de `--lang auto` siga el idioma que de verdad dictas, además del config y del sistema (por decidir).
+9. Pista de vocabulario opcional para nombres y términos (por decidir).
+10. Señal sonora opcional al terminar.
+11. La rotación conserva solo las últimas 5 sesiones: poder conservar una.
 
 ### A evaluar
-9. Umbrales de confianza del filtro, que hoy descartan más que el propio Whisper en habla técnica o con mezcla de idiomas.
-10. En vivo, aplicar las reglas del glosario de varias palabras aunque una pausa las parta en dos tramos.
-11. El colapso por frases todavía recorta repeticiones literales como `A. A. A. A.` (el de palabras ya no).
-12. Ocultar el aviso técnico `resource_tracker: leaked semaphore` que Python imprime tras un cierre forzado del micrófono.
-13. Audio de fondo (videos o música por los parlantes) produce frases inventadas en inglés («I'm going to go to the top»). Evaluar un aviso o perfil para entornos con audio de fondo.
-14. Filtro de bucles: una frase de 3+ palabras repetida idéntica en el tramo siguiente se descarta (el audio se conserva). Compromiso conocido: una repetición dictada a propósito se pierde del texto.
-15. Modo archivo: aplicar el mismo idioma pegajoso en `detect_languages`.
+12. Umbrales de confianza del filtro, que hoy descartan más que el propio Whisper en habla técnica o con mezcla de idiomas.
+13. En vivo, aplicar las reglas del glosario de varias palabras aunque una pausa las parta en dos tramos.
+14. El colapso por frases todavía recorta repeticiones literales como `A. A. A. A.` (el de palabras ya no).
+15. Ocultar el aviso técnico `resource_tracker: leaked semaphore` que Python imprime tras un cierre forzado del micrófono.
+16. Audio de fondo (videos o música por los parlantes) produce frases inventadas en inglés («I'm going to go to the top»). Evaluar un aviso o perfil para entornos con audio de fondo.
+17. Filtro de bucles: una frase de 3+ palabras repetida idéntica en el tramo siguiente se descarta (el audio se conserva). Compromiso conocido: una repetición dictada a propósito se pierde del texto.
+18. Modo archivo: aplicar el mismo idioma pegajoso en `detect_languages`.
+19. Voces remotas por parlante casi no se detectan como voz (evaluar captura del audio del sistema).
 
 ### Infraestructura
-16. CI en GitHub Actions (macOS Apple Silicon) con los tests unitarios.
+20. CI en GitHub Actions (macOS Apple Silicon) con los tests unitarios.
+
+## 0.1.2 - 2026-11-06
+
+Menos voz perdida y nada que se pise: la puerta de silencio se adapta a tu sala y descartar o salir no destruye lo que ya tenías.
+
+### Añadido
+- `s copiar de nuevo` siempre visible en la revisión cuando hay texto (`s copiar` si aún no se copió). Con `--no-copy` no se ofrece.
+- Tecla `h` para abrir el historial desde Listo, la revisión y Sin voz: `↑↓` elegir, `1-9` saltar, `↵` copiar, `esc` o `h` vuelve a donde estabas. Sin grabaciones guardadas, un aviso de una línea.
+- Las grabaciones descartadas ya no desaparecen: salen al final del historial y de `voz copiar --lista`, marcadas «descartada», y se copian por su número (`voz copiar 4`) o con `↵` en el historial. `voz copiar` sin número sigue copiando la última válida.
+- La revisión muestra una línea de respaldo propia según lo que de verdad se guardó: `Respaldo: ~/.local/state/voz/sesion-…-g1 · texto y audio`, o en ámbar si falló el texto o el audio.
+- El resumen indica `N tramos omitidos por nivel bajo` cuando la puerta descartó tramos (con `VOZ_DIAG=1` apunta a `diag.log`).
+- «(reemplazó tu portapapeles)» se muestra solo en el momento de copiar, no en cada redibujo.
+- En terminales angostas el historial quita la fecha y la duración antes de recortar las primeras palabras de cada grabación.
+
+### Corregido
+- Puerta de silencio relativa al ruido de la sala: la voz baja ya no se pierde. Un tramo debe sobresalir del piso de ruido medido en tus pausas (8 veces si es corto, 5 si es largo) en vez de pasar un umbral fijo. En 9 sesiones reales conserva 859 de 920 tramos (antes 782), sin perder ninguno de los que antes pasaban.
+- Descartar no pisa una copia externa: si copiaste otra cosa mientras tanto, el portapapeles queda como estaba, también al salir de `voz`. Si sigue siendo texto de `voz`, se restaura lo anterior.
+- Un tramo que falla ya no deja la sesión como limpia: queda marcada y con el comando para recuperar el audio.
+- Nada tardío entra en una grabación cerrada: si el modelo responde después de abandonar un tramo atascado, ese resultado se descarta. `c` tras un abandono sigue con un motor nuevo y conserva el texto ya transcrito.
+- El respaldo no suelta su protección mientras haya audio por escribir: el siguiente `voz` avisa de la sesión pendiente.
+- Nombres de sesión: una colisión ya no genera `…-2-2`, un nombre que dejaba la grabación fuera de las listas.
+- Sin voz y descartada ya no dicen que el audio quedó guardado cuando el disco lo rechazó.
+- Filtros: una «y» suelta (y su bucle «y y y…») y «suscríbete al canal» ya no entran como texto.
 
 ## 0.1.1 - 2026-11-04
 

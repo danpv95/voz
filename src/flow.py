@@ -18,6 +18,7 @@ class St(Enum):
     REVIEW = "revision"
     NOVOICE = "sin_voz"
     CHOOSE = "elegir"
+    HISTORY = "historial"      # list of saved recordings opened with h (READY, REVIEW or NOVOICE)
     DONE = "fin"
 
 
@@ -32,6 +33,8 @@ class Act(Enum):
     UNDO = "undo"
     COPY = "copy"              # copy the current recording (copy mode != auto)
     EXIT = "exit"              # leave; `Step.copy_all` says what to copy
+    HISTORY_OPEN = "history_open"   # shell loads the list, then reports it with history_loaded()
+    HISTORY_COPY = "history_copy"   # copy the saved recording at `Flow.hist_sel` (state is back where it was opened)
 
 
 @dataclass
@@ -53,6 +56,9 @@ class Flow:
     state: St = St.READY
     takes: list[Take] = field(default_factory=list)
     discard_on_finish: bool = False   # esc while recording: finish, then mark discarded
+    hist_size: int = 0                # entries in the history list (set by history_loaded)
+    hist_sel: int = 0                 # highlighted entry, 0-based
+    hist_back: St = St.REVIEW         # where the history view returns to (esc, h, or after copying)
 
     @property
     def current(self) -> Take | None:
@@ -74,6 +80,9 @@ ENTER = "enter"
 SPACE = "space"   # acts as ENTER only where the spec says so (LISTO, ESCUCHANDO)
 ESC = "esc"
 BACKSPACE = "backspace"
+UP = "up"          # arrows arrive already named by the key reader
+DOWN = "down"
+HISTORY_MAX = 20   # entries offered by the history view
 
 
 def norm(raw: str | None) -> str | None:
@@ -99,6 +108,13 @@ def _leave(flow: Flow) -> Step:
     return Step(Act.EXIT)
 
 
+def _open_history(flow: Flow) -> Step:
+    flow.hist_back = flow.state
+    flow.state = St.HISTORY
+    flow.hist_size = flow.hist_sel = 0
+    return Step(Act.HISTORY_OPEN)
+
+
 def step(flow: Flow, key: str | None) -> Step:
     """Apply one logical key. Unknown keys are ignored (NOOP)."""
     s = flow.state
@@ -110,6 +126,8 @@ def step(flow: Flow, key: str | None) -> Step:
         key = ENTER
 
     if s is St.READY:
+        if key == "h":
+            return _open_history(flow)
         if key == ENTER:
             flow.takes.append(Take(n=len(flow.takes) + 1))
             flow.state = St.LISTEN
@@ -147,11 +165,28 @@ def step(flow: Flow, key: str | None) -> Step:
             return Step(Act.UNDO)
         if key == "s" and cur and cur.valid:
             return Step(Act.COPY)
+        if key == "h":
+            return _open_history(flow)
         if key in (ENTER, ESC):
             return _leave(flow)
 
+    elif s is St.HISTORY:
+        if key == UP:
+            flow.hist_sel = max(0, flow.hist_sel - 1)
+        elif key == DOWN:
+            flow.hist_sel = min(flow.hist_size - 1, flow.hist_sel + 1)
+        elif key in tuple("123456789") and int(key) <= flow.hist_size:
+            flow.hist_sel = int(key) - 1
+        elif key == ENTER:
+            flow.state = flow.hist_back
+            return Step(Act.HISTORY_COPY)
+        elif key in (ESC, "h"):
+            flow.state = flow.hist_back
+
     elif s is St.NOVOICE:
         cur = flow.current
+        if key == "h":
+            return _open_history(flow)
         if key == "r" or (key == ENTER and cur and cur.nomic):   # ↵ is "reintentar" when the mic is the problem
             flow.takes.append(Take(n=len(flow.takes) + 1))
             flow.state = St.LISTEN
@@ -182,6 +217,13 @@ def finished(flow: Flow, text: str, seconds: float) -> None:
         cur.discarded = True
     flow.discard_on_finish = False
     flow.state = St.NOVOICE if cur.novoice else St.REVIEW
+
+
+def history_loaded(flow: Flow, count: int) -> None:
+    """The shell loaded the history list (HISTORY_OPEN). Nothing saved: back where it came from."""
+    flow.hist_size, flow.hist_sel = min(count, HISTORY_MAX), 0
+    if count == 0:
+        flow.state = flow.hist_back
 
 
 def mic_failed(flow: Flow) -> None:

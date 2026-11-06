@@ -36,7 +36,7 @@ Pendiente, en orden de prioridad. Es una lista de trabajo, no una promesa de fec
 ### Infraestructura
 20. CI en GitHub Actions (macOS Apple Silicon) con los tests unitarios.
 
-## 0.1.2 - 2026-11-XX
+## 0.1.2 - 2026-11-06
 
 Menos voz perdida y nada que se pise: la puerta de silencio se adapta a tu sala y descartar o salir no destruye lo que ya tenías.
 

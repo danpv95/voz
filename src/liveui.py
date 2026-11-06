@@ -20,9 +20,11 @@ Key design points:
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 import textwrap
 import threading
+import unicodedata
 import time
 from pathlib import Path
 
@@ -161,12 +163,24 @@ def _first_line(err: BaseException) -> str:
     return lines[0] if lines else type(err).__name__
 
 
+def gated_text(count: int, diag: bool = False) -> str:
+    """'3 tramos omitidos por nivel bajo' (singular for 1, '' for 0); '(ver diag.log)' when VOZ_DIAG is on.
+    The level gate cannot tell silence from quiet speech: the text never claims they were silence."""
+    if count <= 0:
+        return ""
+    text = "1 tramo omitido por nivel bajo" if count == 1 else f"{count} tramos omitidos por nivel bajo"
+    return text + (" (ver diag.log)" if diag else "")
+
+
 def summary_line(copied, seconds: float, text: str, langs: list[str], lang_arg: str,
-                 compact: bool | None = None, untranscribed: str = "") -> str:
+                 compact: bool | None = None, untranscribed: str = "", gated: str = "",
+                 replaced: bool = True) -> str:
     """e.g. '✓  Copiado (reemplazó tu portapapeles)  ·  42 s  ·  31 palabras  ·  es'.
-    Compact (narrow terminals) drops the parenthesis so duration and words survive.
+    Compact (narrow terminals) drops the parenthesis so duration and words survive, and so does
+    `replaced=False` (the parenthesis belongs to the copy event, not to every redraw).
     `untranscribed` ("2 tramos sin transcribir") turns it into the incomplete-text warning:
-    '⚠  Texto incompleto  ·  2 tramos sin transcribir  ·  copiado'."""
+    '⚠  Texto incompleto  ·  2 tramos sin transcribir  ·  copiado'.
+    `gated` (see gated_text) is one more dim part at the end."""
     if compact is None:
         compact = ui.width() < NARROW
     if untranscribed:
@@ -174,7 +188,8 @@ def summary_line(copied, seconds: float, text: str, langs: list[str], lang_arg: 
         return (ui.paint(ui.AMBER, "⚠") + "  Texto incompleto"
                 + ui.paint(ui.GRAY, "  ·  " + "  ·  ".join([untranscribed, *tail])))
     if copied is True:
-        head = f"{ui.paint(ui.GREEN, '✓')}  Copiado" + ("" if compact else " " + ui.paint(ui.GRAY, "(reemplazó tu portapapeles)"))
+        head = f"{ui.paint(ui.GREEN, '✓')}  Copiado" + (
+            "" if compact or not replaced else " " + ui.paint(ui.GRAY, "(reemplazó tu portapapeles)"))
     elif copied is False:
         head = f"{ui.paint(ui.AMBER, '⚠')}  No se pudo copiar (pbcopy no disponible)"
     else:
@@ -183,6 +198,8 @@ def summary_line(copied, seconds: float, text: str, langs: list[str], lang_arg: 
     parts = [_dur(seconds), f"{len(text.split())} palabras"]
     if used:
         parts.append("+".join(used))
+    if gated:
+        parts.append(gated)
     return head + ui.paint(ui.GRAY, "  ·  " + "  ·  ".join(parts))
 
 
@@ -192,6 +209,91 @@ def finishing_label(seconds: float, pending: int) -> str:
     if pending > 0:
         label += f" · {pending} tramo{'' if pending == 1 else 's'} pendiente{'' if pending == 1 else 's'}"
     return label
+
+
+MIN_HEAD = 12  # cells kept for the first words of a recording in the history view
+HISTORY_ROWS = 9  # entries visible at once (the digits 1-9 jump to them; arrows scroll further)
+
+
+def _history_fit(text: str, cols: int) -> str:
+    """Truncate at a character cluster boundary, including joined emoji and accents."""
+    if ui.visible_len(text) <= cols:
+        return text
+    clusters = []
+    for ch in text:
+        code = ord(ch)
+        extend = (unicodedata.combining(ch) or ch == "\u200d" or 0xFE00 <= code <= 0xFE0F
+                  or 0x1F3FB <= code <= 0x1F3FF or 0xE0020 <= code <= 0xE007F)
+        regional_pair = (0x1F1E6 <= code <= 0x1F1FF and clusters
+                         and len(clusters[-1]) == 1 and 0x1F1E6 <= ord(clusters[-1]) <= 0x1F1FF)
+        if clusters and (extend or clusters[-1].endswith("\u200d") or regional_pair):
+            clusters[-1] += ch
+        else:
+            clusters.append(ch)
+    out, used = [], 0
+    for cluster in clusters:
+        width = ui.visible_len(cluster)
+        if used + width > cols - 1:
+            break
+        out.append(cluster)
+        used += width
+    return "".join(out) + "…"
+
+
+DISCARDED_TAG = "descartada"
+
+
+def history_lines(items, sel: int, rows: int = HISTORY_ROWS) -> list[str]:
+    """The history view. `items` are (autosave.Recording, seconds | None) in `voz copiar` order
+    (valid first, discarded last and marked); `sel` is the highlighted one (0-based). Every line
+    is cut to the terminal width."""
+    n = len(items)
+    rows = max(1, min(rows, n))
+    top = max(0, min(sel - rows // 2, n - rows))
+    out = [ui.paint(ui.TEXT + ";1", "Historial") + ui.paint(
+        ui.GRAY, ("  ·  grabaciones guardadas" if ui.width() >= NARROW else "") + f"  ·  {sel + 1} de {n}")]
+    room = ui.width() - 1 - 2                                  # minus the selection mark
+    for i in range(top, top + rows):
+        rec, secs = items[i]
+        gone = bool(getattr(rec, "discarded", False))
+        words, when, dur = len(rec.text.split()), autosave.when(rec.run), f"{autosave.clock(secs):>5}"
+        num, tag = f"{i + 1:>2}", ([DISCARDED_TAG] if gone else [])
+        # from the most to the least informative: the first words always keep at least MIN_HEAD
+        # cells, so the date goes before they do (down to the bare number)
+        tiers = [[num, when, dur, f"{words:>5} palabras", *tag],
+                 [num, when[5:], dur, f"{words:>4} pal.", *tag],        # MM-DD HH:MM
+                 [num, when[5:], dur, *tag],
+                 [num, when[5:], *tag],
+                 [num, *tag]]
+        prefix = next(("  ".join(t) for t in tiers if len("  ".join(t)) + 2 + MIN_HEAD <= room), "  ".join(tiers[-1]))
+        line = _history_fit(f"{prefix}  «{autosave.head(rec.text)}»", room)
+        if i == sel:
+            out.append(ui.paint(ui.ACCENT, "▸ ") + ui.paint((ui.GRAY if gone else ui.TEXT) + ";1", line))
+        else:
+            out.append("  " + (ui.paint(ui.GRAY, line) if gone else line))
+    return out + _history_hints()
+
+
+def _history_hints() -> list[str]:
+    return _hint(["↑↓ elegir", "1-9 saltar", "↵ copiar", "esc/h volver"],
+                 ["↑↓ elegir", "1-9 saltar", "↵ copiar", "esc/h volver"])
+
+
+class ArrowKeys(ui.Keys):
+    """ui.Keys that also reports the up/down arrows (ESC [ A/B, or ESC O A/B) as flow.UP/DOWN."""
+
+    ARROWS = {b"\x1b[A": F.UP, b"\x1b[B": F.DOWN, b"\x1bOA": F.UP, b"\x1bOB": F.DOWN}
+
+    def _take(self):
+        b = self._buf
+        if not self._pasting and b[:1] == b"\x1b":
+            if len(b) < 3:
+                self._fill(0.01)          # an arrow is written in one go: give the rest a moment
+            key = self.ARROWS.get(bytes(b[:3]))
+            if key:
+                del b[:3]
+                return key
+        return super()._take()
 
 
 class Audio:
@@ -294,11 +396,16 @@ class Shell:
         self.force_exit = False          # second Ctrl-C while finishing: stop waiting
         self.incomplete = False          # current recording closed with chunks untranscribed
         self.lost = 0                    # chunks of the current recording that will not be transcribed
+        self.lost_carry = 0              # of those, the ones lost by an engine that was replaced (see _renew_abandoned)
         self.retry_mic = False           # the last recording got no audio: re-query the device on retry
         # --no-copy wins over the config: nothing is ever copied, `s` is not offered
         self.copy_mode = "nunca" if getattr(args, "no_copy", False) else self.cfg["copy"]
-        self.clip_before: str | None = None   # clipboard before voz first touched it
-        self.clip_owner: int | str | None = None  # take n (or "all") now in the clipboard
+        self.clip_before: str | None = None   # what the clipboard held before voz's current run of writes
+        self.clip_owner: int | str | None = None  # take n (or "all"/"history"/"external") now in the clipboard
+        self.clip_text: str | None = None     # the last text voz itself wrote there
+        self.clip_hist_take: int | None = None  # history copy of THIS run's recording n (retired if n is discarded)
+        self.copy_note = False           # the summary still carries the copy event's "(reemplazó…)"
+        self.history: list = []          # (Recording, seconds) rows of the history view
 
         def tracked(audio, **kw):
             out = transcribe_fn(audio, **kw)
@@ -333,8 +440,8 @@ class Shell:
         a.gate = False
         if a.session is not None:                 # "r": close the previous recording
             a.session.finish(timeout=CLOSE_JOIN_S)
-            a.rec.close(clean=not (self.incomplete or a.session.abandoned))
-            self.incomplete, self.lost = False, 0
+            a.rec.close(clean=self._rec_clean())
+            self.incomplete, self.lost, self.lost_carry = False, 0, 0
         session = self.next_session or self._new_session(warm=False)
         self.next_session = None
         rec = autosave.Session(run_id=self.run_id, take=self.flow.current.n)
@@ -346,6 +453,24 @@ class Shell:
         self._wait_ready()
         if session.error is None:
             self._open_mic()
+
+    def _renew_abandoned(self) -> None:
+        """`c` after closing gave up on a stuck transcriber: the old worker may still be inside
+        the model and its late results are dropped, so the recording goes on with a NEW engine.
+        What was already transcribed (and the chunks that were not) stays part of this recording."""
+        a = self.audio
+        old = a.session
+        if old is None or not old.abandoned:
+            return
+        new = self._new_session(warm=False)
+        new.parts = list(old.parts)
+        new._on_commit = a.rec.commit
+        a.seg, a.session = new._seg, new
+        self.lost_carry = self.lost
+        try:
+            old.finish(timeout=0)      # stop its worker as soon as the stuck call returns
+        except Exception:  # noqa: BLE001
+            pass
 
     def _open_mic(self) -> None:
         """Open the microphone and start listening. If it cannot be opened the recording ends
@@ -441,7 +566,7 @@ class Shell:
         if a.session.abandoned:                   # timed out or forced: audio saved, session unfinished
             self.incomplete = True
         # chunks that errored, plus the ones given up on: REVIEW / NOVOICE say so
-        self.lost = a.session.failed_chunks + (a.session.pending if a.session.abandoned else 0)
+        self.lost = self.lost_carry + a.session.failed_chunks + (a.session.pending if a.session.abandoned else 0)
         F.finished(self.flow, a.session.committed, self.seconds)
         self._flush_keys()
         cur = self.flow.current
@@ -451,9 +576,15 @@ class Shell:
             return
         self._print_take(cur)
         if cur.discarded:
-            a.rec.mark("[descartada]")
+            self._discard_effects(cur)
         elif self.copy_mode == "auto":
             self._copy(cur.text, cur.n)
+
+    def _rec_clean(self) -> bool:
+        """May the current recording be closed as clean (lock removed)? Not when any chunk was
+        given up on or failed: the WAV holds audio the text does not."""
+        s = self.audio.session
+        return not (self.incomplete_text or getattr(s, "abandoned", False) or getattr(s, "failed_chunks", 0))
 
     @property
     def incomplete_text(self) -> bool:
@@ -477,23 +608,45 @@ class Shell:
         sys.stderr.flush()
         self.printed = len(cur.text)
 
-    def _copy(self, text: str, owner: int | str) -> None:
+    def _write_clipboard(self, text: str, owner: int | str, hist_take: int | None = None) -> bool:
+        """The one way voz writes the clipboard. Remembers what was there first (unless it is
+        what voz itself wrote before: then the older snapshot still holds) and what voz wrote,
+        so a later discard only touches the clipboard while it still holds voz's own text."""
         import output
 
+        cur = output.from_clipboard()
+        if cur is not None and (self.clip_text is None or cur != self.clip_text):
+            self.clip_before = cur
+        ok = output.to_clipboard(text)
+        if ok:
+            self.clip_owner, self.clip_text, self.clip_hist_take = owner, text, hist_take
+        return ok
+
+    def _copy(self, text: str, owner: int | str) -> None:
         if getattr(self.args, "no_copy", False):
             return
-        if self.clip_owner is None and self.clip_before is None:
-            self.clip_before = output.from_clipboard()   # to give it back on a discard
-        self.copied = output.to_clipboard(text)
-        if self.copied:
-            self.clip_owner = owner
+        self.copied = self._write_clipboard(text, owner)
+        self.copy_note = bool(self.copied)
+
+    def _holds(self, n: int) -> bool:
+        """Is take `n` (or a history copy of it) what voz last put in the clipboard?"""
+        return self.clip_owner == n or (self.clip_owner == "history" and self.clip_hist_take == n)
 
     def _uncopy(self, n: int) -> None:
-        """A discarded recording must not stay in the clipboard: put back the previous
-        valid recording or, if none, what the user had before running voz."""
+        """A discarded recording must not stay in the clipboard: put back the previous valid
+        recording or, if none, what the user had before running voz. Only while the clipboard
+        STILL holds what voz wrote: if the user copied something else meanwhile, that is theirs
+        and stays (and leaving voz will not overwrite it either)."""
         import output
 
-        if self.clip_owner != n:
+        if not self._holds(n):
+            return
+        current = output.from_clipboard()
+        if current is None:                       # cannot read it: touch nothing
+            return
+        self.copied = None
+        if current != self.clip_text:
+            self._forget_clipboard("external")
             return
         prev = self.flow.valid_takes()
         if prev and self.copy_mode == "auto":
@@ -501,13 +654,59 @@ class Shell:
         else:
             if self.clip_before is not None:
                 output.to_clipboard(self.clip_before)
-            self.clip_owner = None
-        self.copied = None
+            self._forget_clipboard(None)
+
+    def _forget_clipboard(self, owner: str | None) -> None:
+        """voz no longer tracks what is in the clipboard ("external": someone else wrote it)."""
+        self.clip_owner, self.clip_text, self.clip_before, self.clip_hist_take = owner, None, None, None
+
+    def _discard_effects(self, cur: F.Take) -> None:
+        """What discarding a take does, whichever key did it (esc while listening, ⌫ in the
+        review): mark it on disk and take it back out of the clipboard."""
+        self.audio.rec.mark("[descartada]")
+        self._uncopy(cur.n)
 
     def _discard_notice(self, cur: F.Take) -> str:
+        head = f"{ui.paint(ui.RED, '✖')}  Grabación {cur.n} descartada "
+        if getattr(self.audio.rec, "audio_failed", None) is not None:   # never promise a backup that failed
+            return head + ui.paint(ui.GRAY, "(el audio no se pudo guardar)")
         where = self.audio.rec.wav_path if ui.width() >= NARROW else self.audio.rec.wav_path.name
-        return (f"{ui.paint(ui.RED, '✖')}  Grabación {cur.n} descartada "
-                + ui.paint(ui.GRAY, f"(el audio sigue en {where})"))
+        return head + ui.paint(ui.GRAY, f"(el audio sigue en {where})")
+
+    def _backup_lines(self, problems_only: bool = False) -> list[str]:
+        """Where the backup of this recording is, from what REALLY got written: a dim line of its
+        own ('Respaldo: ~/…/sesion-…-g1 · texto y audio'), or an amber one when the disk refused
+        the text and/or the audio. `problems_only`: say nothing when all is well."""
+        rec = self.audio.rec
+        wav = getattr(rec, "wav_path", None)
+        if rec is None or wav is None:
+            return []
+        wav = Path(wav)
+        audio_ok = getattr(rec, "audio_failed", None) is None
+        text_ok = getattr(rec, "text_failed", None) is None
+        if audio_ok and text_ok:
+            if problems_only:
+                return []
+            color, note, path = ui.GRAY, "texto y audio", wav.with_suffix("")
+        elif text_ok:
+            color, note, path = ui.AMBER, "el audio no se pudo guardar", wav.with_suffix(".txt")
+        elif audio_ok:
+            color, note, path = ui.AMBER, "el texto no se pudo guardar", wav
+        else:
+            return [ui.paint(ui.AMBER, "⚠  Respaldo: no se pudo guardar ni el texto ni el audio")]
+        line = f"Respaldo: {_short_path(path)}  ·  {note}"
+        if len(line) > ui.width() - 1:                         # long path on a narrow terminal: just the name
+            line = f"Respaldo: {path.name}  ·  {note}"
+        return [ui.paint(color, line)]
+
+    def _notice_lines(self) -> list[str]:
+        if not self.notice:
+            return []
+        plain = ui._ANSI.sub("", self.notice)
+        lines = _wrapped(plain)
+        color = ui.GREEN if plain.startswith(("✓", "↺")) else ui.AMBER
+        return [ui.paint(color, lines[0][:1]) + lines[0][1:],
+                *[ui.paint(ui.GRAY, line) for line in lines[1:]]]
 
     # ---------- actions ----------
     def perform(self, st: F.Step, keys):
@@ -519,6 +718,7 @@ class Shell:
                 return self._model_failed()
         elif act is F.Act.CONTINUE:
             self.copied, self.notice = None, ""
+            self._renew_abandoned()
             self._listen()
         elif act is F.Act.PAUSE:
             self._stop_listening()
@@ -528,8 +728,7 @@ class Shell:
         elif act is F.Act.FINISH:
             self._finish(keys)
         elif act is F.Act.DISCARD:
-            a.rec.mark("[descartada]")
-            self._uncopy(cur.n)
+            self._discard_effects(cur)
         elif act is F.Act.UNDO:
             a.rec.mark("[restaurada]")
             self.notice = f"{ui.paint(ui.GREEN, '↺')}  Grabación {cur.n} restaurada"
@@ -537,9 +736,50 @@ class Shell:
                 self._copy(cur.text, cur.n)
         elif act is F.Act.COPY:
             self._copy(cur.text, cur.n)
+            self.notice = ""
+        elif act is F.Act.HISTORY_OPEN:
+            self._open_history()
+        elif act is F.Act.HISTORY_COPY:
+            self._copy_history()
         elif act is F.Act.EXIT:
             return self._exit(st)
         return None
+
+    @property
+    def history_allowed(self) -> bool:
+        """--no-copy: nothing is ever copied, so there is nothing to pick from the history either."""
+        return not getattr(self.args, "no_copy", False)
+
+    @property
+    def hist_keys(self) -> list[str]:
+        return ["h historial"] if self.history_allowed else []
+
+    def _open_history(self) -> None:
+        """Read-only: the saved recordings, same list and numbering as `voz copiar --lista`
+        (valid ones first, discarded ones last and marked)."""
+        recs = autosave.listing()[:F.HISTORY_MAX] if self.history_allowed else []
+        mine = getattr(self.audio.rec, "base", None)
+        cur = self.flow.current
+        # the WAV header of the recording in progress lags up to a second behind: use our own clock
+        self.history = [(r, cur.seconds if mine is not None and cur is not None and r.stem == mine
+                         else autosave.duration(r)) for r in recs]
+        F.history_loaded(self.flow, len(self.history))
+        if not self.history:
+            self.notice = f"{ui.paint(ui.AMBER, '⚠')}  No hay grabaciones guardadas"
+
+    def _copy_history(self) -> None:
+        """Copy the highlighted saved recording. The current one is left as it was (its summary
+        stops saying "Copiado": the clipboard now holds something else)."""
+        rec, _ = self.history[self.flow.hist_sel]
+        mine = rec.n if rec.run == self.run_id else None      # a recording of THIS run: discarding it retires the copy
+        if not self._write_clipboard(rec.text, "history", mine):
+            self.notice = f"{ui.paint(ui.AMBER, '⚠')}  No se pudo copiar (pbcopy no disponible)"
+            return
+        self.copied, self.copy_note = None, False
+        where = f"sesión {autosave.when(rec.run)} · grabación {rec.n} · {len(rec.text.split())} palabras"
+        if getattr(rec, "discarded", False):
+            where += " · descartada"
+        self.notice = f"{ui.paint(ui.GREEN, '✓')}  Copiado" + ui.paint(ui.GRAY, f" · {where}")   # as `voz copiar`
 
     def _model_failed(self):
         self.region.clear()
@@ -556,9 +796,11 @@ class Shell:
         else:
             text = valid[-1].text if valid else ""
             if text and not st.keep_clipboard and self.clip_owner != valid[-1].n and (
+                    self.clip_owner not in ("history", "external") or st.copy_last) and (
                     st.copy_last or self.copy_mode == "auto"):
                 # ELEGIR ↵ promises "la última" in every copy mode; in auto it also covers
-                # "the last recording was discarded: keep a valid one copied"
+                # "the last recording was discarded: keep a valid one copied". Not over a
+                # recording the user picked from the history (or copied elsewhere): that is the last word
                 self._copy(text, valid[-1].n)
         self._cleanup()
         self.region.clear()
@@ -615,8 +857,8 @@ class Shell:
                     pass
         self.next_session = None
         if a.rec is not None:
-            # chunks given up on keep the .lock: the next voz offers to re-transcribe the WAV
-            a.rec.close(clean=not (self.incomplete or getattr(a.session, "abandoned", False)))
+            # chunks given up on (or that failed) keep the .lock: the next voz offers to re-transcribe the WAV
+            a.rec.close(clean=self._rec_clean())
 
     # ---------- rendering ----------
     def lines(self) -> list[str]:
@@ -636,7 +878,10 @@ class Shell:
                     out.append(f"{ui.paint(ui.AMBER, '⚠')}  ↵ ignorado: el modelo todavía está cargando")
                 return out
             self.early_enter = False
-            out = _status(ui.paint(ui.GREEN, "●"), "Listo", [("", "↵ hablar · esc salir")])
+            hist = " · h historial" if self.history_allowed else ""
+            out = _status(ui.paint(ui.GREEN, "●"), "Listo",
+                          [("", f"↵ hablar{hist} · esc salir"), ("", "↵ hablar · esc salir")])
+            out += self._notice_lines()
             if self.welcome is None:
                 self.welcome = _first_run()
             if self.welcome:
@@ -677,20 +922,40 @@ class Shell:
             return head + alerts + ui.wrap_transcript(text, a.session.partial, ui.width(), self.region.max_text_lines)
         if s is F.St.REVIEW:
             cur = f.current
+            hist = self.hist_keys
             if cur.discarded:
-                return [self._discard_notice(cur),
-                        *_hint(["u deshacer", "r grabar otra", "↵ salir"], ["u deshacer", "r otra", "↵ salir"])]
-            copy_key = self.copy_mode != "auto" and not getattr(self.args, "no_copy", False)
+                return [self._discard_notice(cur), *self._notice_lines(),
+                        *_hint(["u deshacer", "r grabar otra"] + hist + ["↵ salir"],
+                               ["u deshacer", "r otra"] + hist + ["↵ salir"])]
+            copy_key = self.history_allowed       # `s` is offered whenever there is text to copy (not with --no-copy)
+            again = "s copiar de nuevo" if self.copied else "s copiar"
             leave = "↵ salir · Cmd-V para pegar" if self.copied else "↵ salir"   # only when it IS copied
-            items = [leave, "r grabar otra", "c añadir", "⌫ descartar"] + (["s copiar"] if copy_key else [])
-            short = [leave, "r otra", "c añadir", "⌫ descartar"] + (["s copiar"] if copy_key else [])
+            items = [leave, "r grabar otra", "c añadir", "⌫ descartar"] + ([again] if copy_key else []) + hist
+            short = [leave, "r otra", "c añadir", "⌫ descartar"] + ([again] if copy_key else []) + hist
             gaps = _untranscribed(self.lost) if self.incomplete_text else ""
-            out = [summary_line(self.copied, cur.seconds, cur.text, self.langs, self.args.lang, untranscribed=gaps)]
-            if gaps:
+            skipped = gated_text(getattr(a.session, "gated", 0), bool(os.environ.get(live.DIAG_ENV)))
+            args = (self.copied, cur.seconds, cur.text, self.langs, self.args.lang)
+            kw = {"replaced": self.copy_note}
+            summary, extra = summary_line(*args, untranscribed=gaps, gated=skipped, **kw), []
+            if gaps and skipped:
+                extra = [ui.paint(ui.GRAY, skipped)]
+            if skipped and ui.visible_len(summary) > ui.width() - 1:
+                # tight: the compact summary, else the skipped chunks on a dim line of their own
+                summary = summary_line(*args, compact=True, untranscribed=gaps, gated=skipped, **kw)
+                if ui.visible_len(summary) > ui.width() - 1:
+                    summary, extra = summary_line(*args, untranscribed=gaps, **kw), [ui.paint(ui.GRAY, skipped)]
+            if self.clip_owner == "history" and not gaps:
+                summary = summary.replace("Sin copiar", "Grabación actual sin copiar")
+            out = [summary, *extra]
+            audio_ok = getattr(a.rec, "audio_failed", None) is None
+            if gaps and audio_ok:
                 out += self._recovery_lines()
-            if self.notice:
-                out.append(self.notice)
+            out += self._backup_lines(problems_only=bool(gaps and audio_ok))
+            out += self._notice_lines()
             return out + _hint(items, short)
+        if s is F.St.HISTORY:
+            room = max(1, shutil.get_terminal_size((80, 24)).lines - 1 - len(_history_hints()))
+            return history_lines(self.history, f.hist_sel, min(HISTORY_ROWS, room))
         if s is F.St.NOVOICE:
             cur = f.current
             if self.incomplete_text:             # chunks existed but none could be transcribed
@@ -699,13 +964,21 @@ class Shell:
                        + (ui.paint(ui.GRAY, " · el audio quedó guardado") if saved else "")]
                 if saved:
                     out += self._recovery_lines()
-                return out + _hint(["r intentar de nuevo", "↵ salir"], ["r reintentar", "↵ salir"])
+                hist = self.hist_keys
+                return out + self._notice_lines() + _hint(["r intentar de nuevo", *hist, "↵ salir"],
+                                                          ["r reintentar", *hist, "↵ salir"])
             if cur.nomic:
+                hist = self.hist_keys
                 return [f"{ui.paint(ui.RED, '✖')}  {record.MIC_PROBLEM}",
                         *[ui.paint(ui.GRAY, ln) for ln in _wrapped(record.MIC_HELP)],
-                        *_hint(["↵ reintentar", "esc salir"], ["↵ reintentar", "esc salir"])]
-            msg = f"{ui.paint(ui.AMBER, '⚠')}  No se detectó voz " + ui.paint(ui.GRAY, "· el audio quedó guardado por si acaso")
-            return [msg, *_hint(["r intentar de nuevo", "↵ salir"], ["r reintentar", "↵ salir"])]
+                        *self._notice_lines(),
+                        *_hint(["↵ reintentar", *hist, "esc salir"], ["↵ reintentar", *hist, "esc salir"])]
+            saved = getattr(a.rec, "audio_failed", None) is None   # never promise a backup that failed
+            msg = f"{ui.paint(ui.AMBER, '⚠')}  No se detectó voz " + ui.paint(
+                ui.GRAY, "· el audio quedó guardado por si acaso" if saved else "· el audio no se pudo guardar")
+            hist = self.hist_keys
+            return [msg, *self._notice_lines(),
+                    *_hint(["r intentar de nuevo", *hist, "↵ salir"], ["r reintentar", *hist, "↵ salir"])]
         if s is F.St.CHOOSE:
             out = [f"{len(f.takes)} grabaciones en esta sesión:"]
             for t in f.takes:
@@ -722,6 +995,12 @@ class Shell:
         """One frame: a key (or None) → the result of acting on it, None to keep going."""
         self.i += 1
         key = F.norm(raw)
+        if key is not None:
+            self.copy_note = False       # "(reemplazó tu portapapeles)" is for the moment of the copy only
+            if self.flow.state in (F.St.READY, F.St.NOVOICE):
+                self.notice = ""         # one-line feedback there lasts until the next key
+        if key == "h" and self.flow.state in (F.St.READY, F.St.REVIEW, F.St.NOVOICE) and not self.history_allowed:
+            return None
         if key in (F.ENTER, F.SPACE) and self.flow.state is F.St.READY:
             sess = self.next_session or self.audio.session
             if sess is not None and not sess.ready.is_set():
@@ -735,7 +1014,7 @@ class Shell:
         import signal
 
         stt.download.quiet = True      # the model download is shown in the region, not printed
-        with ui.Keys() as keys:
+        with ArrowKeys() as keys:
             self.keys = keys
             try:
                 while True:

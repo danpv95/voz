@@ -106,8 +106,12 @@ def _candidates(base: Path | None, run_id: str | None, take: int):
         return
     run = run_id or new_run_id()
     yield STATE_DIR / f"{run}-g{take}"
+    # a run that already carries a collision suffix ('…-2') gets the NEXT number, never a second
+    # suffix ('…-2-2'): that name would not match _RUN_RE and the recording would vanish from lists
+    m = re.fullmatch(r"(sesion-\d{8}-\d{6})-\d+", run)
+    root = m[1] if m else run
     for k in range(2, MAX_NAME_TRIES + 1):
-        yield STATE_DIR / f"{run}-{k}-g{take}"
+        yield STATE_DIR / f"{root}-{k}-g{take}"
 
 
 def _flock_retry(fd: int) -> bool:
@@ -171,6 +175,12 @@ class Session:
                               "a", encoding="utf-8")
         self._q: queue.Queue = queue.Queue()
         self._closed = False
+        # close() ran while the writer thread was still writing: the flock is then held until
+        # the writer ends (or the process dies) and the .lock file is never removed
+        self.close_pending = False
+        self._state = threading.Lock()
+        self._writer_done = False
+        self._closing = False
         # disk full / I/O error. Kept apart: the audio is the irreplaceable part and must
         # keep flowing when only the .txt breaks (and the text when the audio breaks)
         self.audio_failed: Exception | None = None   # stop queueing audio, tell the UI
@@ -203,6 +213,19 @@ class Session:
             self._wav_file.close()          # wave does not close a file object it was handed
         except OSError as e:
             self.audio_failed = self.audio_failed or e
+        with self._state:
+            self._writer_done = True
+            if self._closing:               # close() gave up waiting: the flock goes now
+                self._release_flock()
+
+    def _release_flock(self) -> None:
+        """Release the flock (state lock held). Safe to call twice."""
+        fd, self._lock_fd = self._lock_fd, None
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
 
     @property
     def failed(self) -> Exception | None:
@@ -235,19 +258,22 @@ class Session:
         self._closed = True
         self._q.put(None)
         self._writer.join(timeout=5)   # if it times out, the writer still closes the wav itself
-        writer_done = not self._writer.is_alive()
         try:
             self._txt.close()
         except OSError as e:
             self.text_failed = self.text_failed or e
-        # the lock goes only when everything ended well: a writer still alive or any
-        # failure leaves it, so the next `voz` reports the session as recoverable
-        if clean and writer_done and self.failed is None:
-            self.lock_path.unlink(missing_ok=True)
-        try:
-            os.close(self._lock_fd)        # releases the flock
-        except OSError:
-            pass
+        with self._state:
+            self._closing = True
+            writer_done = self._writer_done
+            self.close_pending = not writer_done
+            # the lock goes only when everything ended well: a writer still alive or any
+            # failure leaves it, so the next `voz` reports the session as recoverable. A
+            # writer still alive also keeps the flock: other `voz` must not take the session
+            # for a dead one (and prune it) while audio is still being written
+            if clean and writer_done and self.failed is None:
+                self.lock_path.unlink(missing_ok=True)
+            if writer_done:
+                self._release_flock()
         prune(current_run=_run_of(self.base.name))
 
     def mark(self, note: str) -> None:
@@ -340,10 +366,11 @@ class Recording(NamedTuple):
     n: int            # recording number inside the run (the N of -gN; legacy names are 1)
     stem: Path
     text: str
+    discarded: bool = False   # the last marker in the .txt is [descartada]
 
 
-def recordings() -> list[Recording]:
-    """Saved recordings that have text and are not discarded, newest first (the order is
+def _scan() -> list[Recording]:
+    """Every saved recording that has text, discarded ones included, newest first (the order is
     the run id, which is a timestamp, then N as a number: g10 comes after g9).
     Read-only: never creates, rewrites or prunes anything."""
     if not STATE_DIR.exists():
@@ -358,15 +385,27 @@ def recordings() -> list[Recording]:
         except (OSError, UnicodeDecodeError):
             continue
         markers = [ln for ln in lines if ln in (_DISCARD, _RESTORE)]
-        if markers and markers[-1] == _DISCARD:       # the last word wins (discard, undo, discard…)
-            continue
+        discarded = bool(markers) and markers[-1] == _DISCARD     # the last word wins (discard, undo, discard…)
         text = " ".join(ln for ln in lines if ln and ln not in (_DISCARD, _RESTORE))
         if not text:
             continue
         n = int(txt.stem.rpartition("-g")[2]) if run != txt.stem else 1
-        out.append(Recording(run, n, txt.with_suffix(""), text))
+        out.append(Recording(run, n, txt.with_suffix(""), text, discarded))
     out.sort(key=lambda r: (r.run, r.n), reverse=True)
     return out
+
+
+def recordings() -> list[Recording]:
+    """Saved recordings that have text and are not discarded, newest first. This is the
+    numbering `voz copiar N` uses: discarded ones never shift it."""
+    return [r for r in _scan() if not r.discarded]
+
+
+def listing() -> list[Recording]:
+    """What `voz copiar --lista` and the `h` history show: the valid recordings exactly as
+    recordings() numbers them, then the discarded ones (newest first) after them."""
+    everything = _scan()
+    return [r for r in everything if not r.discarded] + [r for r in everything if r.discarded]
 
 
 def duration(rec: Recording) -> float | None:
@@ -376,3 +415,20 @@ def duration(rec: Recording) -> float | None:
             return w.getnframes() / w.getframerate()
     except Exception:  # noqa: BLE001 - a truncated or absent file just means "unknown"
         return None
+
+
+def when(run: str) -> str:
+    """'sesion-20261103-120037' → '2026-11-03 12:00' (what the user remembers)."""
+    m = re.match(r"sesion-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})", run)
+    return f"{m[1]}-{m[2]}-{m[3]} {m[4]}:{m[5]}" if m else run
+
+
+def clock(seconds: float | None) -> str:
+    """'1:05' for a duration; '-' when unknown (see duration())."""
+    return "-" if seconds is None else f"{int(seconds // 60)}:{int(seconds % 60):02d}"
+
+
+def head(text: str, words: int = 6) -> str:
+    """First `words` words of a recording, '…' when there is more."""
+    parts = text.split()
+    return " ".join(parts[:words]) + ("…" if len(parts) > words else "")

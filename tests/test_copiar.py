@@ -90,7 +90,9 @@ def test_nothing_saved_is_a_clear_error(state, clip, capsys):
     assert code == 1 and out == "" and "No hay grabaciones guardadas" in err
     rec(state, "20261103-120000", 1, "solo descartada", "[descartada]")
     rec(state, "20261103-120000", 2)                       # empty .txt: no voice
-    assert run_copiar(capsys)[0] == 1 and run_copiar(capsys, "--lista")[0] == 1
+    assert run_copiar(capsys)[0] == 1          # nothing valid to copy by default…
+    code, out, _ = run_copiar(capsys, "--lista")
+    assert code == 0 and "solo descartada" in out and "descartada" in out.splitlines()[0].split("»")[-1]   # …but it is listed
     assert "v" not in clip
 
 

@@ -20,10 +20,11 @@ def primary_language_es(monkeypatch):
 @pytest.fixture(autouse=True)
 def no_peak_gate(monkeypatch):
     """Most tests push placeholder chunks (zeros, tiny arrays) through a fake transcriber:
-    switch the live peak gate off for them. tests/test_silence_gate.py turns it back on."""
+    switch the live silence gate off for them. tests/test_silence_gate.py turns it back on."""
     import live
 
-    monkeypatch.setattr(live, "MIN_CHUNK_PEAK", 0.0)
+    for name in ("MIN_CHUNK_PEAK", "MIN_SNR", "MIN_SNR_SHORT"):
+        monkeypatch.setattr(live, name, 0.0)
 
 
 @pytest.fixture

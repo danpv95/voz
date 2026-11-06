@@ -12,6 +12,7 @@ Modos:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -103,22 +104,29 @@ def cmd_copiar(args) -> int:
     import autosave
     import flow
 
-    recs = autosave.recordings()
+    recs = autosave.listing()       # valid ones numbered as always, discarded ones after them
     if not recs:
         print(f"✖  No hay grabaciones guardadas en {autosave.STATE_DIR}.", file=sys.stderr)
         return 1
     if args.lista:
+        dim = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
         for i, r in enumerate(recs, 1):
-            secs = autosave.duration(r)
-            dur = f"{int(secs // 60)}:{int(secs % 60):02d}" if secs is not None else "-"
-            words = r.text.split()
-            head = " ".join(words[:6]) + ("…" if len(words) > 6 else "")
-            print(f"{i:>3}  {_when(r.run)}  g{r.n:<3} {dur:>6}  {len(words):>5} palabras  «{head}»")
+            dur = autosave.clock(autosave.duration(r))
+            line = f"{i:>3}  {_when(r.run)}  g{r.n:<3} {dur:>6}  {len(r.text.split()):>5} palabras  «{autosave.head(r.text)}»"
+            if r.discarded:
+                line += "  descartada"
+                line = f"\033[2m{line}\033[0m" if dim else line
+            print(line)
         return 0
 
+    valid = sum(1 for r in recs if not r.discarded)
+    if not valid and not args.number:
+        print("✖  Todas las grabaciones guardadas están descartadas. Elige una por su número "
+              "(las ves con: voz copiar --lista).", file=sys.stderr)
+        return 1
     if args.todas:
         run = recs[0].run
-        mine = sorted((r for r in recs if r.run == run), key=lambda r: r.n)
+        mine = sorted((r for r in recs if r.run == run and not r.discarded), key=lambda r: r.n)
         text = flow.joined([flow.Take(r.n, r.text) for r in mine])
         what = f"{len(mine)} grabación" + ("" if len(mine) == 1 else "es")
     else:
@@ -129,7 +137,7 @@ def cmd_copiar(args) -> int:
                   f"pediste la {k}. Mira cuáles hay con: voz copiar --lista", file=sys.stderr)
             return 1
         r = recs[k - 1]
-        run, text, what = r.run, r.text, f"grabación {r.n}"
+        run, text, what = r.run, r.text, f"grabación {r.n}" + (" (descartada)" if r.discarded else "")
     words = len(text.split())
     where = f"sesión {_when(run)} · {what} · {words} palabras"
     if args.stdout:
@@ -145,10 +153,9 @@ def cmd_copiar(args) -> int:
 
 def _when(run: str) -> str:
     """'sesion-20261103-120037' → '2026-11-03 12:00' (what the user remembers)."""
-    import re
+    import autosave
 
-    m = re.match(r"sesion-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})", run)
-    return f"{m[1]}-{m[2]}-{m[3]} {m[4]}:{m[5]}" if m else run
+    return autosave.when(run)
 
 
 def _interactive() -> bool:
@@ -323,16 +330,19 @@ def cmd_file(path: str, args, rules) -> int:
 
 EPILOG = """\
 teclas del modo en vivo:
-  listo        ↵ hablar · esc salir
+  listo        ↵ hablar · h historial · esc salir
   escuchando   ↵ terminar · p pausa · esc descartar
   en pausa     p reanudar · ↵ terminar · esc descartar
   revisión     ↵ salir (el texto ya está copiado: Cmd-V para pegar) · r grabar otra
-               · c añadir · ⌫ descartar · u deshacer · s copiar (si lo pediste a mano)
+               · c añadir · ⌫ descartar · u deshacer · s copiar (de nuevo)
+               · h historial (↑↓ elegir · ↵ copiar · esc volver)
   sin audio    ↵ reintentar · esc salir (el micrófono no entrega sonido)
+  sin voz      r reintentar · h historial · ↵ salir
 
 volver a copiar una grabación guardada:
   voz copiar         la última (no descartada) · voz copiar 2 = la penúltima
   --todas            toda la última sesión, unida · --lista las que hay, numeradas
+                     (las descartadas van al final, marcadas; se copian por su número)
   --stdout           imprime en vez de copiar
 
 archivos y carpetas:
@@ -340,7 +350,7 @@ archivos y carpetas:
   ~/.config/voz/corrections.toml   glosario de nombres propios
   ~/.local/state/voz               audio y texto de respaldo (solo tu usuario)
 
-VOZ_UI=simple  usa el flujo simple, sin la interfaz interactiva
+VOZ_UI=simple  usa el flujo simple, sin la interfaz interactiva (sin historial: voz copiar --lista)
 """
 
 

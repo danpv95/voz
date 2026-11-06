@@ -1,6 +1,8 @@
 """Replay a WAV through the real live Segmenter and report, per chunk, what the issue #7
-fixes would do: peak, gate verdict (MIN_CHUNK_PEAK) and, with --detect, the sticky
-language chosen by the OLD rule (no duration floor) vs the NEW one (SWITCH_MIN_S).
+fixes would do: peak, the session noise floor the chunk was cut with, the effective gate
+threshold and verdict (live.gate; "v0.1.1" = the old absolute peak >= 0.015) and, with
+--detect, the sticky language chosen by the OLD rule (no duration floor) vs the NEW one
+(SWITCH_MIN_S).
 Never opens the microphone. Prints no transcript text, only counts.
 
   python bench/replay_gate.py a.wav [b.wav ...] [--gain 0.1] [--detect] [--transcribe]
@@ -22,6 +24,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import live  # noqa: E402
 from record import SAMPLE_RATE  # noqa: E402
+
+
+OLD_MIN_PEAK = 0.015   # v0.1.1 absolute gate, shown for comparison
 
 
 def load(path: str) -> np.ndarray:
@@ -58,14 +63,17 @@ def main() -> int:
     for path in a.wavs:
         audio = np.clip(load(path) * a.gain, -1.0, 1.0)
         chunks = segment(audio)
-        kept = [c for c in chunks if live.chunk_peak(c) >= live.MIN_CHUNK_PEAK]
+        verdicts = [live.gate(c) for c in chunks]
+        kept = [c for c, v in zip(chunks, verdicts) if v[0]]
+        old_kept = sum(v[1] >= OLD_MIN_PEAK for v in verdicts)
         print(f"{Path(path).name}: {len(audio) / SAMPLE_RATE:.1f} s, gain {a.gain}, "
               f"{len(chunks)} chunks, {len(kept)} accepted, {len(chunks) - len(kept)} gated "
-              f"(peak < {live.MIN_CHUNK_PEAK})")
-        for i, c in enumerate(chunks, 1):
-            secs, peak = len(c) / SAMPLE_RATE, live.chunk_peak(c)
-            ok = peak >= live.MIN_CHUNK_PEAK
-            row = f"  {i:3d}  {secs:5.1f} s  peak {peak:.4f}  {'accepted' if ok else 'GATED   '}"
+              f"(v0.1.1: {old_kept} accepted)")
+        for i, (c, (ok, peak, floor, thr)) in enumerate(zip(chunks, verdicts), 1):
+            secs = len(c) / SAMPLE_RATE
+            was = "ok" if peak >= OLD_MIN_PEAK else "gated"
+            row = (f"  {i:3d}  {secs:5.1f} s  peak {peak:.4f}  floor {floor:.4f}  "
+                   f"thr {thr:.4f}  {'accepted' if ok else 'GATED   '}  v0.1.1 {was:5}")
             if a.detect and ok:
                 probs = stt.detect_language_probs(c, stt.DEFAULT_MODEL)
                 lo, ln = old.choose(probs), new.choose(probs, secs)

@@ -26,23 +26,78 @@ PREROLL_MS = 300      # audio kept before the first voiced frame (soft onsets)
 HISTORY_S = 5.0       # rolling window for the adaptive threshold
 MIN_HISTORY_MS = 300  # don't call anything "voice" before this much context
 FINISH_TIMEOUT_S = 20.0  # how long closing waits for pending chunks to be transcribed
-# A chunk whose loudest 30 ms frame (raw RMS) stays below this is never sent to Whisper.
-# Audited on a 12 min meeting: 11 chunks under 0.015 were all invented sentences, while the
-# quietest real speech chunk peaked at 0.021 (one session only, so the margin is thin: that is
-# why a gated chunk is counted and logged, and the WAV autosave keeps the audio).
-MIN_CHUNK_PEAK = 0.015
+# Silence gate (issue #7, relative to the room since v0.1.2): a chunk reaches Whisper only
+# when its loudest 30 ms frame (raw RMS, chunk_peak) stands out of the session noise floor:
+# p10 of the raw levels of the frames without voice in the last NOISE_WINDOW_S, measured
+# when the chunk is cut (causal: only audio already heard). Short chunks are where Whisper invents sentences, so
+# they need a louder peak:
+#   threshold = max(MIN_CHUNK_PEAK, snr × max(floor, NOISE_FLOOR_MIN))
+#   snr = MIN_SNR for chunks ≥ SHORT_CHUNK_S, MIN_SNR_SHORT for shorter ones
+# The floor only counts frames without voice: with continuous speech a floor over every
+# frame rose 3× and gated real chunks of up to 11 s. Measured on 9 real sessions (920 chunks:
+# dictation, low voice, meetings, calls): v0.1.1 kept 782, this gate keeps 859 and drops
+# none that v0.1.1 kept; a quiet-throat dictation went from 61/108 to 106/108 chunks.
+# Short chunks under 8 × floor were silence or a lone filler word. Remote voices through a
+# phone speaker sit at 2-3 × floor and stay gated: no energy rule separates them from the
+# room. A ratio does not depend on the mic gain. Gated chunks are counted and logged
+# (VOZ_DIAG) and the WAV autosave keeps their audio.
+MIN_CHUNK_PEAK = 0.001      # absolute minimum (≈ -60 dBFS): below it nothing is speech
+MIN_SNR = 5.0
+MIN_SNR_SHORT = 8.0
+SHORT_CHUNK_S = 1.5
+NOISE_WINDOW_S = 30.0
+NOISE_MIN_FRAMES = 33       # ~1 s of pauses before the floor ignores voiced frames
+NOISE_FLOOR_MIN = 1e-4      # digital silence must not make every click look loud
 DIAG_ENV = "VOZ_DIAG"  # =1: one line per chunk (no text) appended to <state dir>/diag.log
 
 
 def chunk_peak(chunk: np.ndarray) -> float:
     """Loudest FRAME_MS frame of `chunk` as raw RMS (same measure as Segmenter.peak_level)."""
+    return float(frame_levels(chunk).max())
+
+
+class Chunk(np.ndarray):
+    """A float32 audio chunk that also carries the session noise floor known when it was cut
+    (Segmenter.noise_floor). Behaves as a plain ndarray for every caller."""
+
+    noise_floor: float | None = None
+
+
+def _tag(audio: np.ndarray, floor: float) -> np.ndarray:
+    out = audio.view(Chunk)
+    out.noise_floor = floor
+    return out
+
+
+def frame_levels(chunk: np.ndarray) -> np.ndarray:
     x = np.asarray(chunk, dtype="float32").ravel()
     frame = int(SAMPLE_RATE * FRAME_MS / 1000)
     n = len(x) // frame
     if n == 0:
-        return float(np.sqrt(np.mean(np.square(x)))) if x.size else 0.0
-    frames = x[: n * frame].reshape(n, frame)
-    return float(np.sqrt(np.mean(np.square(frames), axis=1)).max())
+        return np.array([float(np.sqrt(np.mean(np.square(x)))) if x.size else 0.0])
+    return np.sqrt(np.mean(np.square(x[: n * frame].reshape(n, frame)), axis=1))
+
+
+def chunk_floor(chunk: np.ndarray) -> float:
+    """Noise floor for the gate: the one the Segmenter attached, else (a plain array) the
+    p10 of the chunk's own frames (its preroll and tail are pauses)."""
+    floor = getattr(chunk, "noise_floor", None)
+    if floor is None:
+        floor = float(np.percentile(frame_levels(chunk), 10))
+    return float(floor)
+
+
+def gate_threshold(secs: float, floor: float) -> float:
+    """Peak a chunk of `secs` needs over a noise floor `floor` (see the constants above)."""
+    snr = MIN_SNR if secs >= SHORT_CHUNK_S else MIN_SNR_SHORT
+    return max(MIN_CHUNK_PEAK, snr * max(floor, NOISE_FLOOR_MIN))
+
+
+def gate(chunk: np.ndarray) -> tuple[bool, float, float, float]:
+    """(accepted, peak, floor, threshold) of the silence gate for one chunk."""
+    peak, floor = chunk_peak(chunk), chunk_floor(chunk)
+    thr = gate_threshold(len(chunk) / SAMPLE_RATE, floor)
+    return peak >= thr, peak, floor, thr
 
 
 def diag(line: str) -> None:
@@ -95,8 +150,22 @@ class Segmenter:
         self._silent_run = 0
         self.peak_level = 0.0  # for the "no mic permission" check
         self.recent_levels: deque[float] = deque(maxlen=20)  # raw RMS, for the UI meter
+        window = int(NOISE_WINDOW_S * 1000 / FRAME_MS)
+        self.noise_levels: deque[float] = deque(maxlen=window)  # raw RMS of frames without voice
+        self.all_levels: deque[float] = deque(maxlen=window)    # every frame, until pauses exist
         self.recent_voiced: deque[bool] = deque(maxlen=20)   # same frames: over the voice threshold?
         self._lock = threading.Lock()  # feed() runs in the audio thread, current() in the worker
+
+    def noise_floor(self) -> float:
+        """Session noise floor known so far: p10 of the raw levels (same raw RMS as
+        chunk_peak) of the frames without voice in the last NOISE_WINDOW_S. Continuous
+        speech must not raise it: it would inflate the threshold of the next short chunk.
+        Until there are NOISE_MIN_FRAMES pauses (talking from the first second), every frame
+        counts. 0.0 before any frame."""
+        levels = self.noise_levels if len(self.noise_levels) >= NOISE_MIN_FRAMES else self.all_levels
+        if not levels:
+            return 0.0
+        return float(np.percentile(np.fromiter(levels, dtype="float32"), 10))
 
     def _threshold(self) -> float:
         return adaptive_threshold(np.fromiter(self.history, dtype="float32"))
@@ -115,7 +184,7 @@ class Segmenter:
         # drop the trailing silence beyond a short tail
         keep_tail = max(0, self._silent_run - 6)  # ~180 ms of tail kept
         frames = self._chunk[: len(self._chunk) - keep_tail] if keep_tail else self._chunk
-        out = np.concatenate(frames)
+        out = _tag(np.concatenate(frames), self.noise_floor())
         self._reset_chunk()
         self._voiced, self._silent_run = False, 0
         return out
@@ -127,7 +196,7 @@ class Segmenter:
         n = len(self._chunk)
         lo = max(1, n - self.soft_frames)
         cut = lo + int(np.argmin(self._chunk_levels[lo:]))
-        out = np.concatenate(self._chunk[:cut])
+        out = _tag(np.concatenate(self._chunk[:cut]), self.noise_floor())
         self._reset_chunk(self._chunk[cut:], self._chunk_levels[cut:])
         self._silent_run = 0
         return out
@@ -143,7 +212,7 @@ class Segmenter:
         with self._lock:
             if not self._voiced or not self._chunk:
                 return None
-            return np.concatenate(list(self._chunk))
+            return _tag(np.concatenate(list(self._chunk)), self.noise_floor())
 
     def feed(self, block: np.ndarray) -> list[np.ndarray]:
         with self._lock:
@@ -166,10 +235,13 @@ class Segmenter:
             raw_level = float(np.sqrt(np.mean(np.square(f))))
             self.peak_level = max(self.peak_level, raw_level)
             self.recent_levels.append(raw_level)
+            self.all_levels.append(raw_level)
             level = float(np.sqrt(np.mean(np.square(fb))))
             self.history.append(level)
             voiced = len(self.history) >= self.min_history and level > self._threshold()
             self.recent_voiced.append(voiced)
+            if not voiced:
+                self.noise_levels.append(raw_level)
 
             if not self._voiced:
                 if voiced:
@@ -236,7 +308,7 @@ class LiveSession:
         self.parts: list[str] = []
         self.error: Exception | None = None  # fatal: model could not load
         self.failed_chunks = 0
-        self.gated = 0                       # chunks too quiet to transcribe (MIN_CHUNK_PEAK)
+        self.gated = 0                       # chunks too quiet to transcribe (silence gate)
         self._warn = warn                    # False in the TTY UI: it shows failed_chunks instead
         self._warm = warm
         self._echo = echo                    # print committed text to stdout as it comes
@@ -251,6 +323,9 @@ class LiveSession:
         self._partial_cost = 0.0             # seconds the last partial took
         self.closing = False
         self.abandoned = False               # chunks left untranscribed (closing timed out / forced)
+        # Held while a result is committed and while `abandoned` flips: a result that arrives
+        # after the session was given up on can never land in its (closed) recording.
+        self._commit_lock = threading.Lock()
         self._hold = False                   # paused / finished: no partial guesses
         self._busy = threading.Lock()        # held while a partial guess runs
         self.ready = threading.Event()
@@ -281,7 +356,7 @@ class LiveSession:
                 self._q.task_done()
                 break
             try:
-                if self.error is None:
+                if self.error is None and not self.abandoned:   # given up on: nothing more is committed
                     self._handle(chunk)
             except Exception as e:  # noqa: BLE001 - e.g. a broken correction rule
                 self.failed_chunks += 1
@@ -304,7 +379,7 @@ class LiveSession:
         if audio is None:
             return
         n = len(audio)
-        if chunk_peak(audio) < MIN_CHUNK_PEAK:
+        if not gate(audio)[0]:
             return   # same gate as final chunks: no provisional text invented on silence
         # wait for at least as much new audio as the last guess cost (×1.2), so the
         # worker never spends all its time re-guessing and finals never queue up
@@ -327,15 +402,20 @@ class LiveSession:
             return
         self._partial_cost = time.perf_counter() - t0
         self._partial_len = n
+        if self.abandoned:
+            return
         self.partial = self._apply(text, self._rules).strip() if text else ""
 
     def _handle(self, chunk) -> None:
-        secs, peak = len(chunk) / SAMPLE_RATE, chunk_peak(chunk)
-        if peak < MIN_CHUNK_PEAK:
+        secs = len(chunk) / SAMPLE_RATE
+        ok, peak, floor, thr = gate(chunk)
+        levels = f"secs={secs:.1f} peak={peak:.4f} floor={floor:.4f} thr={thr:.4f}"
+        if not ok:
             self.gated += 1
             self.partial, self._partial_len = "", 0
-            diag(f"gated secs={secs:.1f} peak={peak:.4f} lang={self._current_lang()}")
+            diag(f"gated {levels} lang={self._current_lang()}")
             return
+        chunk = np.asarray(chunk)   # Whisper gets a plain array
         prev_lang = self._lang_state.current if self._lang_state is not None else None
         try:
             extra = {"lang_state": self._lang_state} if self._lang_state is not None else {}
@@ -349,7 +429,7 @@ class LiveSession:
         text = self._apply(text, self._rules).strip() if text else ""
         self.partial, self._partial_len = "", 0
         loop = bool(text and self.parts and _repeats_last_sentence(text, self.parts[-1]))
-        diag(f"{'accepted' if text and not loop else 'dropped'} secs={secs:.1f} peak={peak:.4f} "
+        diag(f"{'accepted' if text and not loop else 'dropped'} {levels} "
              f"lang={self._current_lang()} chars={len(text)}{' loop' if loop else ''}")
         if not text or loop:
             # stt already moved the language when it kept segments; a chunk that is not
@@ -357,7 +437,9 @@ class LiveSession:
             if self._lang_state is not None:
                 self._lang_state.current = prev_lang
             return  # Whisper loop across chunks (music, long silence): keep the first copy
-        if text:
+        with self._commit_lock:
+            if self.abandoned:   # the transcriber came back after the recording was closed on it
+                return
             sep = " " if self.parts else ""
             self.parts.append(text)
             if self._on_commit:
@@ -396,9 +478,13 @@ class LiveSession:
         self._partial_len, self._partial_cost = 0, 0.0
         self._hold = False
 
+    def _give_up(self) -> None:
+        with self._commit_lock:
+            self.abandoned = True
+
     def abandon(self) -> None:
         """Give up on the chunks still pending (the user forced the exit)."""
-        self.abandoned = True
+        self._give_up()
 
     def drain(self, timeout: float | None = None) -> bool:
         """Wait until every submitted chunk is transcribed, WITHOUT ending the worker
@@ -410,17 +496,17 @@ class LiveSession:
         deadline = None if timeout is None else time.monotonic() + timeout
         while self._q.unfinished_tasks and self._worker.is_alive() and not self.abandoned:
             if deadline is not None and time.monotonic() > deadline:
-                self.abandoned = True
+                self._give_up()
             time.sleep(0.02)
         if self._q.unfinished_tasks:          # timed out, abandoned, or the worker died
-            self.abandoned = True
+            self._give_up()
         # an in-flight partial guess finishes first (it can be the stuck one too)
         while not self.abandoned:
             if self._busy.acquire(timeout=0.05):
                 self._busy.release()
                 break
             if deadline is not None and time.monotonic() > deadline:
-                self.abandoned = True
+                self._give_up()
         self.partial = ""
         return not self.abandoned
 
@@ -448,7 +534,7 @@ class LiveSession:
             if not self.ready.is_set():
                 request_hard_exit("el modelo seguía cargando")
             elif wait is not None:
-                self.abandoned = True
+                self._give_up()
                 request_hard_exit("quedó una transcripción pendiente sin terminar")
         if self.parts and self._echo:
             sys.stdout.write("\n")
@@ -554,7 +640,10 @@ def _flush_and_close(seg, session, rec) -> bool:
     except KeyboardInterrupt:
         session.abandon()
         done = False
-    pending = session.pending
+    # a chunk that failed is as untranscribed as one given up on: the WAV holds audio the text lacks
+    failed = getattr(session, "failed_chunks", 0)
+    done = done and not failed
+    pending = session.pending or failed
     rec.close(clean=done)
     if not done:
         print(incomplete_notice(rec.wav_path, pending), file=sys.stderr)

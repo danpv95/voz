@@ -9,6 +9,20 @@ def test_lone_junk_phrase_is_dropped():
     assert _clean_segments({"segments": [seg(" Gracias.")]}) == ""
 
 
+def test_lone_filler_and_its_loop_are_dropped():
+    assert _clean_segments({"segments": [seg(" y")]}) == ""
+    assert _clean_segments({"segments": [seg(" y y y y y y y y y y y y")]}) == ""
+
+
+def test_subscribe_hallucination_is_dropped():
+    assert _clean_segments({"segments": [seg(" ¡Suscríbete al canal!")]}) == ""
+
+
+def test_filler_inside_dictation_survives():
+    result = {"segments": [seg("Compra pan"), seg("y"), seg("leche.")]}
+    assert _clean_segments(result) == "Compra pan y leche."
+
+
 def test_real_gracias_inside_dictation_survives():
     result = {"segments": [seg("Hola equipo,"), seg("gracias por venir.")]}
     assert _clean_segments(result) == "Hola equipo, gracias por venir."

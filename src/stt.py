@@ -30,6 +30,9 @@ JUNK_PHRASES = {
     "gracias por ver el video",
     "gracias por ver el vídeo",
     "suscríbete",
+    "suscríbete al canal",
+    "suscríbete a mi canal",
+    "suscríbete al canal y dale like",
     "subtítulos realizados por la comunidad de amara.org",
     "subtítulos por la comunidad de amara.org",
     "subtitulado por la comunidad de amara.org",
@@ -41,8 +44,18 @@ JUNK_PHRASES = {
     "thank you for watching",
     "you",
     "bye",
+    # a lone conjunction: what a faint chunk decodes to when it carries no words
+    "y",
 }
 _JUNK = {p.lower().strip(" ¡!¿?.") for p in JUNK_PHRASES}
+
+
+def _is_junk(text: str) -> bool:
+    """The whole text is a junk phrase, or one junk word repeated ("y y y y": single
+    letters are exempt from loop collapsing, so the loop arrives intact)."""
+    key = text.lower().strip(" ¡!¿?.")
+    words = {w.strip(" ,¡!¿?.") for w in key.split()}
+    return key in _JUNK or (len(words) == 1 and words <= _JUNK)
 
 
 # --lang auto: detect only among these (short chunks otherwise get mistaken for
@@ -175,9 +188,10 @@ def _filter_segments(result: dict, audio=None) -> list[dict]:
                 (in_memory and _is_silent(audio)) or no_speech > 0.3):
             continue
         lone_junk = n == 1 and (not in_memory or _is_silent(audio))
-        if text.lower().strip(" ¡!¿?.") in _JUNK and (no_speech > 0.3 or lone_junk):
+        text = _collapse_repeats(text)
+        if _is_junk(text) and (no_speech > 0.3 or lone_junk):
             continue
-        kept.append({"start": s.get("start", 0.0), "end": s.get("end"), "text": _collapse_repeats(text)})
+        kept.append({"start": s.get("start", 0.0), "end": s.get("end"), "text": text})
     return kept
 
 
